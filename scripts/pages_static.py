@@ -62,7 +62,7 @@ _art("/tentang/", f"Tentang Kami | {SITE_NAME}", f"Tentang {SITE_NAME}: direktor
      f"Tentang {SITE_NAME}", f"""
 <p>{E(SITE_NAME)} ialah direktori percuma yang menyusun pautan bahan ulang kaji SPM — soalan percubaan (trial) SPM beserta skema jawapan, soalan sebenar SPM, nota ringkas, latihan dan buku teks KSSM Tingkatan 4 dan 5 — supaya pelajar boleh mencarinya dengan cepat <strong>ikut subjek, tahun dan negeri</strong>.</p>
 <h2>Bagaimana kami berfungsi</h2>
-<p>Kami <strong>tidak menyimpan atau memuat naik</strong> sebarang fail. Setiap butang membuka fail yang telah dikongsi secara awam oleh pemilik asalnya (kebanyakannya di Google Drive). Kami mengumpul pautan daripada sumber awam termasuk <a href="https://www.bumigemilang.com/" rel="noopener">Bumi Gemilang</a>, menyusunnya, dan mengemas kini laman ini setiap minggu.</p>
+<p>Kami <strong>tidak menyimpan atau memuat naik</strong> sebarang fail. Setiap butang membuka fail yang telah dikongsi secara awam oleh pemilik asalnya (kebanyakannya di Google Drive). Kami mengumpul pautan daripada sumber awam, menyusunnya, dan mengemas kini laman ini setiap minggu.</p>
 <h2>Hak cipta &amp; permintaan pemadaman</h2>
 <p>Hak cipta setiap bahan milik penulis, sekolah atau jabatan pendidikan berkenaan. Jika anda pemilik bahan dan mahu pautan dibuang atau dibetulkan, sila <a href="/hubungi/">hubungi kami</a> dengan pautan berkenaan dan kami akan mengambil tindakan secepat mungkin.</p>
 <h2>Iklan</h2>

@@ -322,7 +322,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 <footer class="foot">
   <div class="wrap">
     <p><strong>{E(SITE_NAME)}</strong> — direktori pautan bahan SPM (soalan percubaan, soalan sebenar, nota, buku teks) yang dikongsi secara awam. Semua fail dihoskan oleh pemilik asal (kebanyakannya Google Drive); kami hanya menyusun pautan supaya lebih mudah dicari.</p>
-    <p class="muted">Sumber pautan: <a href="https://www.bumigemilang.com/" rel="noopener">Bumi Gemilang</a> dan pemilik bahan masing-masing. Hak cipta bahan milik penulis / sekolah / jabatan pendidikan berkenaan. Dikemas kini {TODAY}.</p>
+    <p class="muted">Hak cipta bahan milik penulis / sekolah / jabatan pendidikan berkenaan. Dikemas kini {TODAY}.</p>
     <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
   </div>
 </footer>
@@ -506,7 +506,7 @@ def render_generic(blocks, subj):
             if sub and sub != last:
                 out.append('<h4 class="sub">%s</h4>' % E(sub)); last = sub
             out.append(row_html(r, subj))
-        out.append('<p class="srcl">Sumber: <a href="%s" target="_blank" rel="noopener">%s</a></p></div>' % (E(b["src"]), E(urlparse(b["src"]).netloc)))
+        out.append('</div>')
         if (bi + 1) % 3 == 0 and bi + 1 < len(blocks): out.append(ad("incontent"))
     return "".join(out)
 
@@ -532,8 +532,6 @@ def render_by_year(blocks, subj, typ):
         out.append("</div></details>")
         if i == 0 and len(years) > 1: out.append(ad("incontent"))
     srcs = OrderedDict((b["src"], 1) for b in blocks)
-    out.append('<p class="srcl">Sumber: %s</p>' % ", ".join('<a href="%s" target="_blank" rel="noopener">%s</a>' % (
-        E(u), E(urlparse(u).path.strip("/") or urlparse(u).netloc)) for u in srcs))
     return "".join(out)
 
 # ---------------------------------------------------------------- build
