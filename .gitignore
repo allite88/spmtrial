@@ -1,0 +1,6 @@
+data/raw/
+data/raw2/
+site/
+.claude/
+__pycache__/
+.DS_Store

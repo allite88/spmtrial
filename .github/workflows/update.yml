@@ -1,0 +1,58 @@
+name: Update & publish SPM site
+
+on:
+  schedule:
+    - cron: "0 18 * * 0"      # every Monday 02:00 Malaysia time
+  workflow_dispatch:           # "Run workflow" button for a manual update
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Crawl + build (weekly / manual)
+        if: github.event_name != 'push'
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python3 scripts/update.py
+      - name: Build only (after a code change)
+        if: github.event_name == 'push'
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python3 scripts/build.py
+      - name: Save updated link data
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "spm-bot"
+          git config user.email "spm-bot@users.noreply.github.com"
+          date -u +%F > data/last-run.txt   # weekly commit keeps GitHub from pausing the schedule after 60 idle days
+          git add data/pages.json data/urls.txt data/changes-*.txt data/last-run.txt
+          git diff --cached --quiet || git commit -m "Auto update $(date +%F)" && git push
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

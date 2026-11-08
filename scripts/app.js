@@ -1,0 +1,63 @@
+(function(){
+var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")};
+// ---- in-page filters
+var f=document.querySelector("[data-filters]");
+if(f){
+  var inp=f.querySelector("input"),fy=f.querySelector("[data-fy]"),fs=f.querySelector("[data-fs]"),cnt=f.querySelector("[data-fcount]");
+  var rows=[].slice.call(document.querySelectorAll("main .row"));
+  rows.forEach(function(r){r._t=norm(r.textContent+" "+(r.closest("details")?r.closest("details").querySelector("summary").textContent:""))});
+  var run=function(){
+    var terms=norm(inp.value).split(/\s+/).filter(Boolean),y=fy?fy.value:"",s=fs?fs.value:"",shown=0,active=terms.length||y||s;
+    rows.forEach(function(r){
+      var ok=terms.every(function(t){return r._t.indexOf(t)>-1})&&(!y||r.dataset.y===y)&&(!s||r.dataset.s===s);
+      r.classList.toggle("hide",!ok);if(ok)shown++;
+    });
+    document.querySelectorAll("main details.yr, main .src").forEach(function(d){
+      var any=d.querySelector(".row:not(.hide)");d.classList.toggle("hide",!any&&!!active);
+      if(active&&any&&d.tagName==="DETAILS")d.open=true;
+    });
+    document.querySelectorAll("main .sub").forEach(function(h){
+      var n=h.nextElementSibling,vis=false;while(n&&n.classList.contains("row")){if(!n.classList.contains("hide")){vis=true;break}n=n.nextElementSibling}
+      h.classList.toggle("hide",!vis&&!!active);
+    });
+    document.querySelectorAll("main section.sec[id]").forEach(function(sec){
+      sec.classList.toggle("hide",!!active&&!sec.querySelector(".row:not(.hide)"));
+    });
+    cnt.textContent=active?shown+" baris sepadan":"";
+  };
+  var tm;inp.addEventListener("input",function(){clearTimeout(tm);tm=setTimeout(run,120)});
+  [fy,fs].forEach(function(x){x&&x.addEventListener("change",run)});
+  var q=new URLSearchParams(location.search);
+  if(q.get("f")){inp.value=q.get("f");run()}
+}
+// ---- global search
+var box=document.getElementById("q");
+if(box){
+  var sel=document.getElementById("qt"),out=document.getElementById("results"),info=document.getElementById("qinfo"),D=null;
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+  var p=new URLSearchParams(location.search);box.value=p.get("q")||"";if(p.get("t"))sel.value=p.get("t");
+  fetch((window.BASE||"")+"/cari/index.json").then(function(r){return r.json()}).then(function(d){
+    D=d;d.r.forEach(function(r){r._t=norm(d.s[r[0]].join(" ")+" "+d.t[r[1]]+" "+(r[2]||"")+" "+r[3]+" "+r[4])});go();
+  });
+  var ch=function(ls){return ls.map(function(l){return '<a class="c c-'+l[2]+'" href="'+esc(l[1])+'" target="_blank" rel="noopener nofollow">'+esc(l[0])+'</a>'}).join("")};
+  var lay=function(L){
+    if(L[0]==="i")return '<div class="rc">'+ch(L[1])+'</div>';
+    if(L[0]==="g")return '<div class="rc rc-grid">'+ch(L[1])+'</div>';
+    return '<div class="rc rc-chap">'+L[1].map(function(c){return '<div class="ch"><div class="chn"><b>'+esc(c[0])+'</b>'+(c[1]?" "+esc(c[1]):"")+'</div><div class="chl">'+ch(c[2])+'</div></div>'}).join("")+
+      (L[2].length?'<div class="rc rc-grid">'+ch(L[2])+'</div>':"")+'</div>';
+  };
+  var go=function(){
+    if(!D)return;var terms=norm(box.value).split(/\s+/).filter(Boolean),t=sel.value;
+    history.replaceState(null,"","?q="+encodeURIComponent(box.value)+(t?"&t="+t:""));
+    if(!terms.length&&!t){out.innerHTML="";info.textContent="Taip sekurang-kurangnya 2 huruf. Gunakan beberapa kata untuk carian lebih tepat.";return}
+    if(terms.join("").length<2&&!t){out.innerHTML="";return}
+    var res=[];for(var i=0;i<D.r.length;i++){var r=D.r[i];if(t&&r[1]!==t)continue;
+      if(terms.every(function(x){return r._t.indexOf(x)>-1}))res.push(r)}
+    res.sort(function(a,b){return (b[2]||0)-(a[2]||0)});
+    info.textContent=res.length+" hasil"+(res.length>300?" (memaparkan 300 teratas — tambah kata carian untuk tapis)":"");
+    out.innerHTML=res.slice(0,300).map(function(r){
+      return '<div class="row"><div class="rl"><div class="res-h"><b><a href="'+(window.BASE||"")+'/spm/'+r[0]+'/">'+esc(D.s[r[0]][0])+'</a></b> · '+esc(D.t[r[1]])+(r[2]?" · "+r[2]:"")+'</div>'+esc(r[3])+'</div>'+lay(r[5])+'</div>'}).join("");
+  };
+  var tm2;box.addEventListener("input",function(){clearTimeout(tm2);tm2=setTimeout(go,150)});sel.addEventListener("change",go);
+}
+})();
