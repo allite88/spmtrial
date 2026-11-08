@@ -8,9 +8,16 @@ import json, re, os, html, shutil, datetime
 from collections import OrderedDict, defaultdict
 from urllib.parse import urlparse
 
-SITE_URL = os.environ.get("SITE_URL", "https://www.contoh-spm.com").rstrip("/")   # set by GitHub Actions
-BASE = urlparse(SITE_URL).path.rstrip("/")   # e.g. "/arkib-spm" on GitHub Pages project sites
-SITE_NAME = "Arkib SPM"
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CFG = json.load(open(os.path.join(_ROOT, "config.json"), encoding="utf-8"))
+# SITE_URL env (local tests) > config.json
+SITE_URL = (os.environ.get("SITE_URL") or CFG["site_url"]).rstrip("/")
+BASE = urlparse(SITE_URL).path.rstrip("/")   # e.g. "/arkib-spm" when served from a sub-path
+SITE_NAME = CFG.get("site_name", "TrialSPM")
+CONTACT = CFG.get("contact_email", "")
+AD_CLIENT = CFG.get("adsense_client", "").strip()
+AD_SLOTS = CFG.get("ad_slots", {})
+AD_PREVIEW = os.environ.get("AD_PREVIEW") == "1" or CFG.get("ads_show_placeholders", False)
 SITE_TAGLINE = "Semua bahan SPM dalam satu tempat — tersusun ikut subjek, tahun dan negeri"
 TODAY = datetime.date.today().isoformat()
 
@@ -289,6 +296,8 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 <meta name="theme-color" content="#0f766e">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Ctext x='16' y='22' font-size='14' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3ESPM%3C/text%3E%3C/svg%3E">
 <style>{CSS}</style>
+{('<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=%s" crossorigin="anonymous"></script>' % E(AD_CLIENT)) if AD_CLIENT else ''}
+{('<meta name="google-adsense-account" content="%s">' % E(AD_CLIENT)) if AD_CLIENT else ''}
 {''.join(jsonld(x) for x in lds)}
 </head>
 <body>
@@ -314,7 +323,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
   <div class="wrap">
     <p><strong>{E(SITE_NAME)}</strong> — direktori pautan bahan SPM (soalan percubaan, soalan sebenar, nota, buku teks) yang dikongsi secara awam. Semua fail dihoskan oleh pemilik asal (kebanyakannya Google Drive); kami hanya menyusun pautan supaya lebih mudah dicari.</p>
     <p class="muted">Sumber pautan: <a href="https://www.bumigemilang.com/" rel="noopener">Bumi Gemilang</a> dan pemilik bahan masing-masing. Hak cipta bahan milik penulis / sekolah / jabatan pendidikan berkenaan. Dikemas kini {TODAY}.</p>
-    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/sitemap.xml">Sitemap</a></p>
+    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
   </div>
 </footer>
 <script>{JS}</script>
@@ -327,8 +336,28 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     open(fp, "w", encoding="utf-8").write(doc)
     SITEMAP.append(path)
+    _ad_count[0] = 0   # next page starts fresh
 
 SITEMAP = []
+
+AD_MAX_PER_PAGE = 6
+_ad_count = [0]
+
+def ad(pos):
+    """One ad unit. pos: top | incontent | infeed | bottom.
+    - With adsense_client + a slot id: a fixed responsive unit at this exact spot.
+    - With adsense_client only: an empty marker; Google Auto Ads decides placement.
+    - AD_PREVIEW: grey placeholder boxes so you can see the layout before AdSense approval."""
+    if _ad_count[0] >= AD_MAX_PER_PAGE and pos != "bottom": return ""
+    _ad_count[0] += 1
+    slot = AD_SLOTS.get(pos, "")
+    fmt = 'data-ad-format="fluid" data-ad-layout-key="-fb+5w+4e-db+86"' if pos == "infeed" and slot else 'data-ad-format="auto" data-full-width-responsive="true"'
+    if AD_CLIENT and slot:
+        return ('<div class="ad ad-%s"><span class="adl">Iklan</span><ins class="adsbygoogle" style="display:block" data-ad-client="%s" data-ad-slot="%s" %s></ins>'
+                '<script>(adsbygoogle=window.adsbygoogle||[]).push({});</script></div>') % (pos, E(AD_CLIENT), E(slot), fmt)
+    if AD_PREVIEW:
+        return '<div class="ad ad-%s ad-ph"><span class="adl">Iklan</span><div>Ruang iklan Google — %s</div></div>' % (pos, pos)
+    return ""
 
 def chips(links):
     out = []
@@ -468,7 +497,7 @@ def row_html(r, subj, year_ctx=None, show_label=None):
 def render_generic(blocks, subj):
     """Render blocks from source pages: heading per source, sub-heading per h2/h3/ctx change."""
     out = []
-    for b in blocks:
+    for bi, b in enumerate(blocks):
         out.append('<div class="src"><h3>%s</h3>' % E(re.sub(r"[~_%]+$|\s*\[\d\]$|\(PU\)$", "", b["title"]).strip()))
         last = None
         for r in b["rows"]:
@@ -478,6 +507,7 @@ def render_generic(blocks, subj):
                 out.append('<h4 class="sub">%s</h4>' % E(sub)); last = sub
             out.append(row_html(r, subj))
         out.append('<p class="srcl">Sumber: <a href="%s" target="_blank" rel="noopener">%s</a></p></div>' % (E(b["src"]), E(urlparse(b["src"]).netloc)))
+        if (bi + 1) % 3 == 0 and bi + 1 < len(blocks): out.append(ad("incontent"))
     return "".join(out)
 
 def render_by_year(blocks, subj, typ):
@@ -494,11 +524,13 @@ def render_by_year(blocks, subj, typ):
         out.append('<details class="yr" data-year="%s"%s><summary><span>%s %s</span><em>%d pautan</em></summary><div class="rows">' % (
             y or "", " open" if i < 2 else "", E(TYPES[typ][0]), yname, n))
         last = None
-        for r in rows:
+        for ri, r in enumerate(rows):
             if r["ctx"] and r["ctx"] != last and not find_state(r["ctx"]) and not re.match(r"^\d{4}\b", r["ctx"]):
                 out.append('<h4 class="sub">%s</h4>' % E(r["ctx"])); last = r["ctx"]
             out.append(row_html(r, subj, year_ctx=y or None))
+            if i == 0 and ri == 11 and len(rows) > 16: out.append(ad("infeed"))
         out.append("</div></details>")
+        if i == 0 and len(years) > 1: out.append(ad("incontent"))
     srcs = OrderedDict((b["src"], 1) for b in blocks)
     out.append('<p class="srcl">Sumber: %s</p>' % ", ".join('<a href="%s" target="_blank" rel="noopener">%s</a>' % (
         E(u), E(urlparse(u).path.strip("/") or urlparse(u).netloc)) for u in srcs))
@@ -535,7 +567,7 @@ for s in subjects_live:
     faqs, yrs, states = subj_faq(slug)
     types_present = [t for t in TYPES if store[slug].get(t) or articles[slug].get(t)]
     yr_txt = f"{yrs[-1]}–{yrs[0]}" if yrs else ""
-    h1 = f"{name} SPM: Soalan Percubaan{' ' + str(yrs[0]) if yrs else ''}, Soalan Sebenar, Nota & Buku Teks"
+    h1 = f"Trial SPM {name}{' ' + str(yrs[0]) if yrs else ''}: Soalan Percubaan + Skema Jawapan, Soalan Sebenar, Nota & Buku Teks"
     desc = (f"{total} pautan bahan SPM {name} ({en}) tersusun: soalan percubaan {yr_txt} + skema jawapan ikut negeri, "
             f"soalan sebenar SPM, nota ringkas, latihan dan buku teks Tingkatan 4 & 5. Buka terus di Google Drive.")
     tabs = "".join('<a href="#%s">%s <em>%d</em></a>' % (t, TYPES[t][0], count_links(slug, t) + len(articles[slug].get(t, []))) for t in types_present)
@@ -551,7 +583,8 @@ for s in subjects_live:
     if states:
         body.append('<select data-fs aria-label="Negeri"><option value="">Semua negeri</option>%s</select>' % "".join('<option>%s</option>' % E(x) for x in states))
     body.append('<span class="fcount" data-fcount></span></div>')
-    for t in types_present:
+    body.append(ad("top"))
+    for ti_, t in enumerate(types_present):
         n = count_links(slug, t)
         body.append(f'<section id="{t}" class="sec"><h2>{E(TYPES[t][0])} {E(name)} SPM</h2><p class="muted">{E(TYPES[t][1])}.</p>')
         if t in ("percubaan", "sebenar", "amali"):
@@ -563,6 +596,8 @@ for s in subjects_live:
                 '<div class="row"><div class="rl">%s</div><div class="rc"><a class="c c-doc" href="%s" target="_blank" rel="noopener">Baca di laman asal</a></div></div>' % (E(ti), E(u))
                 for ti, u in articles[slug][t]) + "</div>")
         body.append("</section>")
+        if ti_ < len(types_present) - 1: body.append(ad("incontent"))
+    body.append(ad("bottom"))
     body.append('<section class="sec faq"><h2>Soalan Lazim</h2>' + "".join(
         f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs) + "</section>")
     related = [x for x in subjects_live if x[3] == cat and x[0] != slug][:8]
@@ -577,7 +612,7 @@ for s in subjects_live:
             "educationalLevel": "SPM (Sijil Pelajaran Malaysia), Tingkatan 4 & 5"},
            faq_ld(faqs)]
     kw = f"soalan percubaan spm {name.lower()}, {name.lower()} spm, skema jawapan {name.lower()}, trial spm {en.lower()}, nota {name.lower()} tingkatan 4, nota {name.lower()} tingkatan 5, buku teks {name.lower()}"
-    page(path, f"{name} SPM — Soalan Percubaan {yrs[0] if yrs else ''} + Skema Jawapan, Nota, Buku Teks | {SITE_NAME}".replace("  ", " "),
+    page(path, (f"Soalan Percubaan SPM {yrs[0]} {name} + Skema Jawapan (Trial SPM {en})" if yrs else f"{name} SPM — Nota, Buku Teks & Latihan | {SITE_NAME}"),
          desc, "\n".join(body), crumbs=[("Utama", "/"), ("Subjek", "/#subjek"), (name, path)], lds=lds, keywords=kw)
     # search index
     for t in store[slug]:
@@ -589,36 +624,87 @@ for s in subjects_live:
                 search_index.append([slug, t, r["year"] or 0, full,
                                      " ".join(l["t"] for l in r["links"]), layout_json(r)])
 
-# ---- year pages
+# ---- year pages + state pages
+def slugify(x): return re.sub(r"[^a-z0-9]+", "-", x.lower()).strip("-")
+STATE_PAGES = defaultdict(list)   # year -> [(state, slug, n)]
+
+def collection_body(y, rows_by_subj, state=None):
+    body = []
+    for i, (s_, rs) in enumerate(rows_by_subj):
+        body.append(f'<details class="yr" id="{s_[0]}" open><summary><span>{E(s_[1])} — Trial SPM {y}{(" " + E(state)) if state else ""}</span><em>{sum(len(r["links"]) for r in rs)} pautan</em></summary><div class="rows">')
+        body.extend(row_html(r, s_[0], year_ctx=y) for r in rs)
+        body.append(f'<p class="srcl"><a href="/spm/{s_[0]}/#percubaan">Semua tahun untuk {E(s_[1])} →</a></p></div></details>')
+        if (i + 1) % 4 == 0 and i + 1 < len(rows_by_subj): body.append(ad("incontent"))
+    return body
+
 for y in trial_years:
     path = f"/soalan-percubaan-spm-{y}/"
     rows_by_subj = []
-    for s in subjects_live:
-        rs = [r for b in store[s[0]].get("percubaan", []) for r in b["rows"] if r["year"] == y]
-        if rs: rows_by_subj.append((s, rs))
+    for s_ in subjects_live:
+        rs = [r for b in store[s_[0]].get("percubaan", []) for r in b["rows"] if r["year"] == y]
+        if rs: rows_by_subj.append((s_, rs))
     total = sum(len(r["links"]) for _, rs in rows_by_subj for r in rs)
-    h1 = f"Soalan Percubaan SPM {y} + Skema Jawapan (Semua Subjek)"
-    desc = f"{total} pautan kertas soalan percubaan (trial) SPM {y} dan skema jawapan untuk {len(rows_by_subj)} subjek, disusun ikut subjek dan negeri. Buka terus di Google Drive."
-    toc = "".join(f'<a href="#{s[0]}">{E(s[1])} <em>{sum(len(r["links"]) for r in rs)}</em></a>' for s, rs in rows_by_subj)
+    # states with enough material get their own page
+    st_count = defaultdict(int)
+    for _, rs in rows_by_subj:
+        for r in rs:
+            if r["state"]: st_count[r["state"]] += len(r["links"])
+    states_here = [(st, slugify(st), n) for st, n in sorted(st_count.items(), key=lambda x: -x[1]) if n >= 15]
+    STATE_PAGES[y] = states_here
+    h1 = f"Soalan Percubaan SPM {y} (Trial SPM {y}) + Skema Jawapan Semua Subjek"
+    desc = f"Trial SPM {y}: {total} pautan kertas soalan percubaan SPM {y} + skema jawapan untuk {len(rows_by_subj)} subjek, ikut negeri (Johor, Selangor, Kedah, MRSM, SBP…). Buka terus, percuma."
+    toc = "".join(f'<a href="#{s_[0]}">{E(s_[1])} <em>{sum(len(r["links"]) for r in rs)}</em></a>' for s_, rs in rows_by_subj)
+    stl = "".join(f'<a href="{path}{sl}/">{E(st)} <em>{n}</em></a>' for st, sl, n in states_here)
     body = [f"<h1>{E(h1)}</h1>",
-            f'<p class="lead">Himpunan <strong>{total}</strong> pautan soalan percubaan SPM {y} untuk <strong>{len(rows_by_subj)}</strong> subjek. Pilih subjek di bawah atau gunakan penapis.</p>',
-            f'<nav class="tabs wrapw" aria-label="Subjek">{toc}</nav>',
+            f'<p class="lead">Himpunan <strong>{total}</strong> pautan soalan percubaan (trial) SPM {y} untuk <strong>{len(rows_by_subj)}</strong> subjek'
+            + (f' daripada <strong>{len(st_count)}</strong> negeri/institusi' if st_count else '') + f'. Dikemas kini {TODAY}.</p>',
+            (f'<h2 class="mini">Ikut negeri</h2><nav class="tabs wrapw" aria-label="Negeri">{stl}</nav>' if stl else ""),
+            f'<h2 class="mini">Ikut subjek</h2><nav class="tabs wrapw" aria-label="Subjek">{toc}</nav>',
             '<div class="filters" data-filters><input type="search" placeholder="Tapis (cth: kimia johor, kertas 2)" aria-label="Tapis">',
-            '<select data-fs aria-label="Negeri"><option value="">Semua negeri</option>%s</select><span class="fcount" data-fcount></span></div>' % "".join('<option>%s</option>' % x for x in STATES)]
-    for s, rs in rows_by_subj:
-        body.append(f'<details class="yr" id="{s[0]}" open><summary><span>{E(s[1])} — Percubaan SPM {y}</span><em>{sum(len(r["links"]) for r in rs)} pautan</em></summary><div class="rows">')
-        body.extend(row_html(r, s[0], year_ctx=y) for r in rs)
-        body.append(f'<p class="srcl"><a href="/spm/{s[0]}/#percubaan">Semua tahun untuk {E(s[1])} →</a></p></div></details>')
-    yl = " · ".join(f'<a href="/soalan-percubaan-spm-{x}/">{x}</a>' for x in trial_years if x != y)
+            '<select data-fs aria-label="Negeri"><option value="">Semua negeri</option>%s</select><span class="fcount" data-fcount></span></div>' % "".join('<option>%s</option>' % x for x in STATES),
+            ad("top")]
+    body += collection_body(y, rows_by_subj)
+    yl = " · ".join(f'<a href="/soalan-percubaan-spm-{x}/">Trial SPM {x}</a>' for x in trial_years if x != y)
     body.append(f'<p class="muted">Tahun lain: {yl}</p>')
-    faqs = [(f"Bilakah soalan percubaan SPM {y} dikeluarkan?",
-             f"Peperiksaan percubaan SPM biasanya diadakan oleh jabatan pendidikan negeri, MRSM dan SBP beberapa bulan sebelum SPM. Pautan di halaman ini ditambah apabila kertas dan skema jawapan dikongsi secara awam."),
-            (f"Subjek apa yang ada untuk percubaan SPM {y}?", f"Terdapat {len(rows_by_subj)} subjek termasuk " + ", ".join(s[1] for s, _ in rows_by_subj[:10]) + ".")]
+    body.append(ad("bottom"))
+    faqs = [(f"Di mana boleh download soalan trial SPM {y}?",
+             f"Halaman ini mengumpulkan {total} pautan soalan percubaan (trial) SPM {y} beserta skema jawapan untuk {len(rows_by_subj)} subjek. Klik butang Kertas 1, Kertas 2 atau Jawapan untuk membuka fail terus di Google Drive tanpa pendaftaran."),
+            (f"Negeri mana yang ada soalan percubaan SPM {y}?",
+             (f"Antaranya {', '.join(st for st, _, _ in states_here[:10])}. Setiap negeri/institusi juga mempunyai halaman sendiri." if states_here else "Pautan ditambah apabila kertas dikongsi secara awam.")),
+            (f"Bilakah soalan percubaan SPM {y} dikeluarkan?",
+             "Peperiksaan percubaan SPM biasanya diadakan oleh jabatan pendidikan negeri, MRSM, SBP dan sekolah beberapa bulan sebelum SPM. Laman ini dikemas kini setiap minggu apabila kertas dan skema jawapan baharu dikongsi."),
+            (f"Subjek apa yang ada untuk trial SPM {y}?", f"Terdapat {len(rows_by_subj)} subjek termasuk " + ", ".join(s_[1] for s_, _ in rows_by_subj[:12]) + ".")]
     body.append('<section class="sec faq"><h2>Soalan Lazim</h2>' + "".join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs) + "</section>")
-    page(path, f"Soalan Percubaan SPM {y} + Skema Jawapan Semua Subjek (Trial) | {SITE_NAME}", desc, "\n".join(body),
-         crumbs=[("Utama", "/"), (f"Percubaan SPM {y}", path)],
+    page(path, f"Soalan Percubaan SPM {y} + Skema Jawapan (Trial SPM {y}) Semua Subjek & Negeri", desc, "\n".join(body),
+         crumbs=[("Utama", "/"), (f"Trial SPM {y}", path)],
          lds=[{"@context": "https://schema.org", "@type": "CollectionPage", "name": h1, "description": desc, "url": SITE_URL + path, "inLanguage": "ms-MY", "dateModified": TODAY}, faq_ld(faqs)],
-         keywords=f"soalan percubaan spm {y}, trial spm {y}, skema jawapan percubaan spm {y}, soalan trial spm {y} semua subjek")
+         keywords=f"soalan percubaan spm {y}, trial spm {y}, skema jawapan percubaan spm {y}, soalan trial spm {y} semua subjek, trial paper spm {y}")
+
+    # ---- one page per state for this year
+    for st, sl, n in states_here:
+        spath = f"{path}{sl}/"
+        rbs = [(s_, [r for r in rs if r["state"] == st]) for s_, rs in rows_by_subj]
+        rbs = [x for x in rbs if x[1]]
+        tot = sum(len(r["links"]) for _, rs in rbs for r in rs)
+        sh1 = f"Soalan Percubaan SPM {y} {st} (Trial SPM {st} {y}) + Skema Jawapan"
+        sdesc = f"Trial SPM {y} {st}: {tot} pautan soalan percubaan SPM {y} {st} + skema jawapan untuk {len(rbs)} subjek — " + ", ".join(s_[1] for s_, _ in rbs[:6]) + "."
+        others = "".join(f'<a href="{path}{sl2}/">{E(st2)}</a>' for st2, sl2, _ in states_here if sl2 != sl)
+        sb = [f"<h1>{E(sh1)}</h1>",
+              f'<p class="lead"><strong>{tot}</strong> pautan kertas soalan percubaan SPM {y} keluaran <strong>{E(st)}</strong> untuk <strong>{len(rbs)}</strong> subjek, beserta skema jawapan. Dikemas kini {TODAY}.</p>',
+              f'<nav class="tabs wrapw" aria-label="Subjek">' + "".join(f'<a href="#{s_[0]}">{E(s_[1])}</a>' for s_, _ in rbs) + "</nav>",
+              '<div class="filters" data-filters><input type="search" placeholder="Tapis (cth: kimia, kertas 2, jawapan)" aria-label="Tapis"><span class="fcount" data-fcount></span></div>',
+              ad("top")]
+        sb += collection_body(y, rbs, state=st)
+        sb.append(f'<section class="sec"><h2>Negeri lain — Trial SPM {y}</h2><nav class="tabs wrapw">{others}</nav><p class="muted"><a href="{path}">← Semua negeri &amp; subjek Trial SPM {y}</a></p></section>')
+        sb.append(ad("bottom"))
+        sfaq = [(f"Ada skema jawapan untuk soalan percubaan SPM {y} {st}?",
+                 f"Ya, kebanyakan kertas percubaan SPM {y} {st} di halaman ini disertakan butang Jawapan / Skema berwarna hijau. Butang biru ialah kertas soalan."),
+                (f"Subjek apa yang ada untuk trial SPM {st} {y}?", ", ".join(s_[1] for s_, _ in rbs) + ".")]
+        sb.append('<section class="sec faq"><h2>Soalan Lazim</h2>' + "".join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in sfaq) + "</section>")
+        page(spath, f"Soalan Percubaan SPM {y} {st} + Skema Jawapan (Trial SPM {st} {y})", sdesc, "\n".join(sb),
+             crumbs=[("Utama", "/"), (f"Trial SPM {y}", path), (st, spath)],
+             lds=[{"@context": "https://schema.org", "@type": "CollectionPage", "name": sh1, "description": sdesc, "url": SITE_URL + spath, "inLanguage": "ms-MY", "dateModified": TODAY}, faq_ld(sfaq)],
+             keywords=f"soalan percubaan spm {y} {st.lower()}, trial spm {st.lower()} {y}, skema jawapan percubaan spm {y} {st.lower()}")
 
 # ---- soalan sebenar page
 path = "/soalan-sebenar-spm/"
@@ -628,11 +714,13 @@ total = sum(len(r["links"]) for _, rs in rows_by_subj for r in rs)
 body = ["<h1>Soalan Sebenar SPM Tahun Lepas + Jawapan (Semua Subjek)</h1>",
         f'<p class="lead"><strong>{total}</strong> pautan kertas peperiksaan sebenar SPM untuk <strong>{len(rows_by_subj)}</strong> subjek, kebanyakannya dengan ulasan atau contoh jawapan.</p>',
         '<nav class="tabs wrapw">' + "".join(f'<a href="#{s[0]}">{E(s[1])}</a>' for s, _ in rows_by_subj) + "</nav>",
-        '<div class="filters" data-filters><input type="search" placeholder="Tapis (cth: 2024, kertas 2)" aria-label="Tapis"><span class="fcount" data-fcount></span></div>']
-for s, rs in rows_by_subj:
+        '<div class="filters" data-filters><input type="search" placeholder="Tapis (cth: 2024, kertas 2)" aria-label="Tapis"><span class="fcount" data-fcount></span></div>', ad("top")]
+for i_, (s, rs) in enumerate(rows_by_subj):
     body.append(f'<details class="yr" id="{s[0]}" open><summary><span>{E(s[1])} — Soalan Sebenar SPM</span><em>{sum(len(r["links"]) for r in rs)} pautan</em></summary><div class="rows">')
     body.extend(row_html(r, s[0]) for r in rs)
     body.append("</div></details>")
+    if (i_ + 1) % 4 == 0: body.append(ad("incontent"))
+body.append(ad("bottom"))
 desc = f"{total} pautan soalan peperiksaan sebenar SPM tahun-tahun lepas untuk {len(rows_by_subj)} subjek, dengan ulasan jawapan. Bahasa Melayu, English, Sejarah, Matematik, Sains dan lain-lain."
 page(path, f"Soalan Sebenar SPM Tahun Lepas + Jawapan Semua Subjek | {SITE_NAME}", desc, "\n".join(body),
      crumbs=[("Utama", "/"), ("Soalan Sebenar SPM", path)],
@@ -646,8 +734,8 @@ json.dump({"s": {s[0]: [s[1], s[2]] for s in subjects_live}, "t": {k: v[0] for k
 page("/cari/", f"Cari Bahan SPM — Soalan Percubaan, Nota, Buku Teks | {SITE_NAME}",
      f"Cari antara {TOTAL} pautan bahan SPM ikut subjek, tahun, negeri dan jenis bahan.",
      '<h1>Cari bahan SPM</h1><div class="bigsearch"><input id="q" type="search" autofocus placeholder="cth: kimia %d johor jawapan"' % trial_years[0] + ' aria-label="Kata carian">'
-     '<select id="qt" aria-label="Jenis"><option value="">Semua jenis</option>' + "".join(f'<option value="{k}">{E(v[0])}</option>' for k, v in TYPES.items()) + '</select></div>'
-     '<p class="muted" id="qinfo">Taip sekurang-kurangnya 2 huruf. Gunakan beberapa kata untuk carian lebih tepat.</p><div id="results" class="rows"></div>',
+     '<select id="qt" aria-label="Jenis"><option value="">Semua jenis</option>' + "".join(f'<option value="{k}">{E(v[0])}</option>' for k, v in TYPES.items()) + '</select></div>' +
+     ad("top") + '<p class="muted" id="qinfo">Taip sekurang-kurangnya 2 huruf. Gunakan beberapa kata untuk carian lebih tepat.</p><div id="results" class="rows"></div>',
      crumbs=[("Utama", "/"), ("Cari", "/cari/")])
 
 # ---- home
@@ -661,12 +749,13 @@ home_faqs = [
     ("Apakah " + SITE_NAME + "?", f"{SITE_NAME} ialah direktori percuma yang menyusun {TOTAL}+ pautan bahan SPM yang dikongsi secara awam — soalan percubaan (trial) {trial_years[-1]}–{trial_years[0]} dengan skema jawapan, soalan sebenar SPM, nota ringkas, latihan dan buku teks Tingkatan 4 & 5 — ikut subjek, tahun dan negeri."),
     ("Bagaimana cara mencari soalan percubaan SPM ikut negeri?", "Buka halaman subjek, kemudian pilih tahun dan negeri pada penapis. Setiap baris memaparkan butang Kertas 1, Kertas 2 dan Jawapan yang dibuka terus di Google Drive."),
     ("Adakah bahan ini percuma?", "Ya. Semua pautan adalah fail yang dikongsi secara awam oleh pemilik asal. Tiada pendaftaran atau bayaran diperlukan."),
+    ("Apakah beza soalan percubaan (trial) dan soalan sebenar SPM?", "Soalan percubaan (trial) disediakan oleh jabatan pendidikan negeri, MRSM, SBP atau sekolah sebagai latihan sebelum SPM, manakala soalan sebenar ialah kertas peperiksaan SPM rasmi tahun-tahun lepas. Kedua-duanya ada di laman ini."),
     ("Berapa banyak subjek SPM yang ada?", f"{len(subjects_live)} subjek SPM, termasuk subjek teras, sains, perdagangan, bahasa, agama dan teknikal/vokasional."),
 ]
 body = f"""
 <section class="hero">
-  <h1>Bahan SPM lengkap: Soalan Percubaan {trial_years[0]}, Soalan Sebenar, Nota &amp; Buku Teks</h1>
-  <p class="lead">{E(SITE_TAGLINE)}. <strong>{TOTAL:,}</strong> pautan untuk <strong>{len(subjects_live)}</strong> subjek — klik terus, tiada iklan pop-up, tiada pendaftaran.</p>
+  <h1>Trial SPM {trial_years[0]}: Soalan Percubaan SPM + Skema Jawapan Semua Subjek &amp; Negeri</h1>
+  <p class="lead">{E(SITE_TAGLINE)}. <strong>{TOTAL:,}</strong> pautan soalan percubaan, soalan sebenar, nota dan buku teks untuk <strong>{len(subjects_live)}</strong> subjek — klik terus, percuma, tiada pendaftaran. Dikemas kini setiap minggu ({TODAY}).</p>
   <form class="bigsearch" action="/cari/" role="search"><input type="search" name="q" placeholder="Cari subjek, tahun, negeri… cth: sejarah 2025 kedah" aria-label="Cari"><button>Cari</button></form>
   <div class="quick">
     <a href="/soalan-percubaan-spm-{trial_years[0]}/">📝 Percubaan SPM {trial_years[0]}</a>
@@ -676,21 +765,29 @@ body = f"""
     <a href="/cari/?t=bukuteks">📘 Buku Teks</a>
   </div>
 </section>
+{ad("top")}
+<section class="sec"><h2>Trial SPM {trial_years[0]} ikut negeri</h2><nav class="tabs wrapw">{''.join(f'<a href="/soalan-percubaan-spm-{trial_years[0]}/{sl}/">{E(st)} <em>{n}</em></a>' for st, sl, n in STATE_PAGES[trial_years[0]])}</nav></section>
 <section id="subjek" class="sec"><h2>Pilih subjek</h2>{''.join(cards)}</section>
-<section class="sec"><h2>Soalan percubaan ikut tahun</h2><div class="grid sm">{''.join(f'<a class="card" href="/soalan-percubaan-spm-{y}/"><b>SPM {y}</b><span>Semua subjek</span></a>' for y in trial_years)}</div></section>
+{ad("incontent")}
+<section class="sec"><h2>Soalan percubaan ikut tahun</h2><div class="grid sm">{''.join(f'<a class="card" href="/soalan-percubaan-spm-{y}/"><b>Trial SPM {y}</b><span>Semua subjek</span></a>' for y in trial_years)}</div></section>
+<section class="sec"><h2>Panduan</h2><div class="grid sm"><a class="card" href="/panduan-trial-spm/"><b>Cara guna soalan trial SPM</b><span>Panduan lengkap →</span></a></div></section>
 <section class="sec"><h2>Info penting SPM</h2><div class="src">{''.join(
     '<div class="row"><div class="rl">%s</div><div class="rc">%s<a class="c c-doc" href="%s" target="_blank" rel="noopener">Halaman asal</a></div></div>' % (
         E(re.sub(r"[~_]+$", "", t)), chips([{"t": link_label(l["t"], clean_url(l["u"])), "u": clean_url(l["u"]), "k": "doc"} for g in pages[u]["groups"] for l in g["links"]][:4]), E(u))
     for t, u in info_links if pages[u]["groups"] or "jadual" in u or "doa" in u)}</div></section>
+{ad("bottom")}
 <section class="sec faq"><h2>Soalan Lazim</h2>{''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in home_faqs)}</section>
 """
-page("/", f"Soalan Percubaan SPM {trial_years[0]} + Skema Jawapan, Soalan Sebenar, Nota SPM | {SITE_NAME}",
+page("/", f"Trial SPM {trial_years[0]} — Soalan Percubaan SPM {trial_years[0]} + Skema Jawapan Semua Subjek | {SITE_NAME}",
      f"Direktori bahan SPM tersusun: {TOTAL:,} pautan soalan percubaan {trial_years[-1]}–{trial_years[0]} + skema jawapan ikut negeri, soalan sebenar SPM, nota ringkas dan buku teks untuk {len(subjects_live)} subjek.",
      body, lds=[{"@context": "https://schema.org", "@type": "WebSite", "name": SITE_NAME, "url": SITE_URL + "/", "inLanguage": "ms-MY",
                  "potentialAction": {"@type": "SearchAction", "target": SITE_URL + "/cari/?q={search_term_string}", "query-input": "required name=search_term_string"}},
                 {"@context": "https://schema.org", "@type": "Organization", "name": SITE_NAME, "url": SITE_URL + "/"},
                 faq_ld(home_faqs)],
      keywords=f"soalan percubaan spm {trial_years[0]}, trial spm, skema jawapan spm, soalan sebenar spm, nota spm, buku teks tingkatan 4, buku teks tingkatan 5")
+
+# ---- static content pages
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages_static.py"), encoding="utf-8").read())
 
 # ---- 404
 page("/404.html", f"Halaman tidak dijumpai | {SITE_NAME}", "Halaman tidak dijumpai.",
@@ -704,10 +801,15 @@ for p_ in SITEMAP:
     sm.append(f"<url><loc>{SITE_URL}{p_}</loc><lastmod>{TODAY}</lastmod><changefreq>weekly</changefreq><priority>{pr}</priority></url>")
 sm.append("</urlset>")
 open(os.path.join(OUT, "sitemap.xml"), "w").write("\n".join(sm))
+if AD_CLIENT:
+    open(os.path.join(OUT, "ads.txt"), "w").write("google.com, %s, DIRECT, f08c47fec0942fa0\n" % AD_CLIENT.replace("ca-pub-", "pub-"))
 open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nDisallow: /cari/index.json\n\nSitemap: {SITE_URL}/sitemap.xml\n")
 llms = [f"# {SITE_NAME}", "", f"> {SITE_TAGLINE}. Direktori percuma {TOTAL} pautan bahan SPM (Sijil Pelajaran Malaysia) yang dikongsi secara awam: soalan percubaan (trial) {trial_years[-1]}–{trial_years[0]} dengan skema jawapan ikut negeri, soalan sebenar SPM, nota ringkas, latihan dan buku teks KSSM Tingkatan 4 & 5.", "",
         "## Halaman utama", f"- [Soalan Sebenar SPM]({SITE_URL}/soalan-sebenar-spm/): kertas peperiksaan sebenar SPM tahun lepas, semua subjek"]
 llms += [f"- [Soalan Percubaan SPM {y}]({SITE_URL}/soalan-percubaan-spm-{y}/): trial SPM {y} + skema jawapan, semua subjek" for y in trial_years]
+llms += [f"- [Panduan Trial SPM]({SITE_URL}/panduan-trial-spm/): apa itu trial SPM dan cara menggunakannya"]
+llms += ["", f"## Trial SPM {trial_years[0]} ikut negeri"]
+llms += [f"- [Soalan Percubaan SPM {trial_years[0]} {st}]({SITE_URL}/soalan-percubaan-spm-{trial_years[0]}/{sl}/): {n} pautan" for st, sl, n in STATE_PAGES[trial_years[0]]]
 llms += ["", "## Subjek"]
 for s in subjects_live:
     yrs = sorted({r["year"] for b in store[s[0]].get("percubaan", []) for r in b["rows"] if r["year"]})

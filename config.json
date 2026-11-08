@@ -1,0 +1,14 @@
+{
+  "site_url": "https://trialspm.com",
+  "site_name": "TrialSPM",
+  "contact_email": "hubungi@trialspm.com",
+
+  "adsense_client": "",
+  "ad_slots": {
+    "top": "",
+    "incontent": "",
+    "infeed": "",
+    "bottom": ""
+  },
+  "ads_show_placeholders": false
+}

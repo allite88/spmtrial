@@ -66,3 +66,11 @@ h2{font-size:21px;margin:0 0 4px}h3{font-size:16px;margin:0 0 8px}
 .hide{display:none!important}
 .res-h{font-size:12.5px;color:var(--mut);margin-bottom:2px}.res-h b{color:var(--brand)}
 .foot{border-top:1px solid var(--line);margin-top:40px;padding:20px 0 34px;background:var(--card);font-size:14px}
+/* ads: reserved height prevents layout shift (good for Core Web Vitals / SEO) */
+.ad{margin:22px auto;text-align:center;min-height:120px;max-width:970px;clear:both}
+.ad-top{min-height:100px}.ad-infeed{margin:10px 0;min-height:110px}
+.adl{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
+.ad-ph>div{border:1.5px dashed var(--line);border-radius:var(--r);min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;background:var(--card)}
+h2.mini{font-size:14px;color:var(--mut);margin:14px 0 0;border:0;padding:0;text-transform:uppercase;letter-spacing:.05em}
+.prose{max-width:760px}.prose h2{margin-top:28px}.prose li{margin:6px 0}.prose p,.prose li{font-size:16px;line-height:1.7}
+.prose .c{pointer-events:none}.big{font-size:20px;font-weight:600}

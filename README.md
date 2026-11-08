@@ -62,3 +62,28 @@ python3 scripts/update.py
 
 - 上线后到 **Google Search Console** 提交 `https://你的域名/sitemap.xml`。
 - 每次更新后 sitemap 的 `lastmod` 会自动变成当天日期，Google 会更快重新抓取。
+
+## 设置（只改 `config.json`）
+
+| 字段 | 说明 |
+|---|---|
+| `site_url` | 你的域名，例如 `https://trialspm.com` |
+| `site_name` | 网站名称 |
+| `contact_email` | 联系邮箱（AdSense 审核需要；可用 Cloudflare 免费 Email Routing 转发到你的 Gmail） |
+| `adsense_client` | AdSense 发布商 ID，例如 `ca-pub-1234567890123456`。填了之后会自动加上 AdSense 代码和 `ads.txt` |
+| `ad_slots` | （可选）在 AdSense 后台建立的广告单元 ID。不填就只用 Auto Ads（Google 自动放广告） |
+
+## 广告位置（每页最多 6 个 + 底部 1 个）
+
+| 位置 | 出现在 |
+|---|---|
+| `top` | 标题和筛选栏下面（最多人看到） |
+| `infeed` | 最新年份列表的第 12 行之后（混在内容中，点击率高） |
+| `incontent` | 每个大区块之间（每科页面的各部分之间、年份页面每 4 科之间） |
+| `bottom` | FAQ 之前 |
+
+想在本地预览广告位置（灰色框）：
+
+```bash
+AD_PREVIEW=1 python3 scripts/build.py
+```
