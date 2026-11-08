@@ -17,6 +17,8 @@ SITE_NAME = CFG.get("site_name", "TrialSPM")
 CONTACT = CFG.get("contact_email", "")
 AD_CLIENT = CFG.get("adsense_client", "").strip()
 AD_SLOTS = CFG.get("ad_slots", {})
+GA4 = CFG.get("ga4_measurement_id", "").strip()
+GSC = CFG.get("search_console_verification", "").strip()
 AD_PREVIEW = os.environ.get("AD_PREVIEW") == "1" or CFG.get("ads_show_placeholders", False)
 SITE_TAGLINE = "Semua bahan SPM dalam satu tempat — tersusun ikut subjek, tahun dan negeri"
 TODAY = datetime.date.today().isoformat()
@@ -298,6 +300,8 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 <style>{CSS}</style>
 {('<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=%s" crossorigin="anonymous"></script>' % E(AD_CLIENT)) if AD_CLIENT else ''}
 {('<meta name="google-adsense-account" content="%s">' % E(AD_CLIENT)) if AD_CLIENT else ''}
+{('<meta name="google-site-verification" content="%s">' % E(GSC)) if GSC else ''}
+{('<script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","%s");</script>' % (E(GA4), E(GA4))) if GA4 else ''}
 {''.join(jsonld(x) for x in lds)}
 </head>
 <body>

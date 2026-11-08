@@ -61,3 +61,9 @@ if(box){
   var tm2;box.addEventListener("input",function(){clearTimeout(tm2);tm2=setTimeout(go,150)});sel.addEventListener("change",go);
 }
 })();
+// analytics: count which papers students open (shows up in GA4 as event "buka_fail")
+document.addEventListener("click",function(e){
+  var a=e.target.closest&&e.target.closest("a.c");if(!a||typeof gtag!=="function")return;
+  var row=a.closest(".row"),lab=row&&row.querySelector(".rl")?row.querySelector(".rl").textContent.trim():"";
+  gtag("event","buka_fail",{jenis:a.className.replace(/.*c-(\w+).*/,"$1"),label:(lab+" | "+a.textContent.trim()).slice(0,100),halaman:location.pathname});
+});

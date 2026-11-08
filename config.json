@@ -2,7 +2,6 @@
   "site_url": "https://spmtrial.com",
   "site_name": "SPMTrial",
   "contact_email": "sgece88@gmail.com",
-
   "adsense_client": "",
   "ad_slots": {
     "top": "",
@@ -10,5 +9,7 @@
     "infeed": "",
     "bottom": ""
   },
-  "ads_show_placeholders": false
+  "ads_show_placeholders": false,
+  "ga4_measurement_id": "",
+  "search_console_verification": ""
 }
