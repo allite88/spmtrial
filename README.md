@@ -67,7 +67,7 @@ python3 scripts/update.py
 
 | 字段 | 说明 |
 |---|---|
-| `site_url` | 你的域名，例如 `https://trialspm.com` |
+| `site_url` | 你的域名，例如 `https://spmtrial.com` |
 | `site_name` | 网站名称 |
 | `contact_email` | 联系邮箱（AdSense 审核需要；可用 Cloudflare 免费 Email Routing 转发到你的 Gmail） |
 | `adsense_client` | AdSense 发布商 ID，例如 `ca-pub-1234567890123456`。填了之后会自动加上 AdSense 代码和 `ads.txt` |
