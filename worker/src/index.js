@@ -23,7 +23,7 @@ function cleanSite(c) {
   const sup = c.support || {};
   const out = {
     support: { on: !!sup.on, title: str(sup.title, 120), text: str(sup.text, 600), img: url(sup.img), link: url(sup.link), note: str(sup.note, 160) },
-    placeholder: { on: !!(c.placeholder || {}).on, text: str((c.placeholder || {}).text, 200) },
+    placeholder: { on: !!(c.placeholder || {}).on, text: str((c.placeholder || {}).text, 200), wa: str((c.placeholder || {}).wa, 20).replace(/\D/g, ""), waText: str((c.placeholder || {}).waText, 300) },
     sponsors: [],
   };
   if (out.support.img === null || out.support.link === null) throw new Error("Pautan sokongan tidak sah");

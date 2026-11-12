@@ -87,7 +87,7 @@ h2.mini{font-size:14px;color:var(--mut);margin:14px 0 0;border:0;padding:0;text-
 .sup-c{display:flex;gap:20px;align-items:center;justify-content:space-between;margin:30px 0 10px;padding:18px 20px;border:2px solid #fda4af;border-radius:14px;background:linear-gradient(135deg,#fff1f2,#fffbeb)}
 .sup-c h2{margin:0 0 6px}.sup-c p{margin:6px 0}
 .sup-qr{flex:0 0 auto;border:0;background:#fff;padding:8px;border-radius:12px;cursor:zoom-in;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-.sup-qr img{display:block;width:180px;height:180px;object-fit:contain}
+.sup-qr img{display:block;width:220px;height:220px;object-fit:contain}
 @media (max-width:640px){.sup-c{flex-direction:column;text-align:center}}
 .sup-modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 .sup-m-in{background:#fff;color:#111;border-radius:14px;padding:16px;max-width:420px;width:100%;text-align:center}
@@ -97,7 +97,11 @@ h2.mini{font-size:14px;color:var(--mut);margin:14px 0 0;border:0;padding:0;text-
 .sup-c{background:linear-gradient(135deg,#2a1219,#2a1d10);border-color:#7f1d3a}}
 .spx{display:none}.spx.on{display:block;margin:14px 0 6px;position:relative}
 .spx img{display:block;width:100%;height:auto;max-height:220px;object-fit:contain;border-radius:10px;background:var(--card)}
-.spx .adl{display:block;font-size:11px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.spx .adl{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.spx-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.spx-wa{display:inline-flex;align-items:center;gap:4px;background:#25d366;color:#fff!important;text-decoration:none;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.spx-wa:hover{background:#1ebe5b}
+.spx-ph .spx-wa{margin-top:6px;font-size:13.5px;padding:5px 14px}
 .spx-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:90px;border:2px dashed var(--line);border-radius:10px;color:var(--mut);text-decoration:none;font-size:13.5px;text-align:center;padding:10px}
 .spx-ph b{color:var(--ink);font-size:15px}
 @media (max-width:640px){.sup-s-in{flex-wrap:nowrap;padding:6px 12px;font-size:13px}.sup-btn{font-size:12.5px;padding:5px 11px}}

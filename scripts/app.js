@@ -31,11 +31,14 @@ QZP.then(function(){
       var L=(c.sponsors||[]).filter(function(x){return x.on&&x.img}),m=L.filter(function(x){return x.where===pg});
       if(!m.length)m=L.filter(function(x){return x.where==="all"||(x.where==="s:*"&&pg.indexOf("s:")===0)});
       var a=m.length?m[Math.floor(Math.random()*m.length)]:null,ph=c.placeholder||{};
+      var wa=ph.wa?"https://wa.me/"+ph.wa+"?text="+encodeURIComponent(ph.waText||"Hello, I would like to advertise on the SPMTrial website. I am "):"";
+      var waNum=ph.wa?ph.wa.replace(/^60/,"0").replace(/^(\d{3})(\d{3,4})(\d{4})$/,"$1-$2 $3"):"";
+      var waBtn=wa?'<a class="spx-wa" href="'+esc(wa)+'" target="_blank" rel="noopener" data-wa>💬 Iklankan di sini · WhatsApp '+esc(waNum)+'</a>':"";
       if(a){
-        spx.innerHTML='<span class="adl">Iklan · Penaja</span>'+(a.url?'<a href="'+esc(a.url)+'" target="_blank" rel="sponsored noopener" data-spx="'+esc(a.name||a.id)+'">':'<div>')+'<img src="'+esc(src(a.img))+'" alt="'+esc(a.name||"Iklan")+'">'+(a.url?'</a>':'</div>');
+        spx.innerHTML='<div class="spx-h"><span class="adl">Iklan · Penaja</span>'+waBtn+'</div>'+(a.url?'<a href="'+esc(a.url)+'" target="_blank" rel="sponsored noopener" data-spx="'+esc(a.name||a.id)+'">':'<div>')+'<img src="'+esc(src(a.img))+'" alt="'+esc(a.name||"Iklan")+'">'+(a.url?'</a>':'</div>');
         spx.className="spx on";
       }else if(ph.on){
-        spx.innerHTML='<a class="spx-ph" href="mailto:'+esc(window.CONTACT||"")+'?subject=Iklan%20di%20SPMTrial"><b>Ruang iklan</b><span>'+esc(ph.text||"Universiti / kolej / pusat tuisyen: iklankan di sini")+'</span></a>';
+        spx.innerHTML='<a class="spx-ph" href="'+esc(wa||("mailto:"+(window.CONTACT||"")+"?subject=Iklan%20di%20SPMTrial"))+'"'+(wa?' target="_blank" rel="noopener" data-wa':'')+'><b>Ruang iklan</b><span>'+esc(ph.text||"Universiti / kolej / pusat tuisyen: iklankan di sini")+'</span>'+(wa?'<span class="spx-wa">💬 WhatsApp '+esc(waNum)+'</span>':'')+'</a>';
         spx.className="spx on";
       }else{spx.innerHTML="";spx.className="spx"}
     }
@@ -50,7 +53,7 @@ QZP.then(function(){
     if(q){e.preventDefault();var im=document.querySelector(".sup-qr img");if(!im)return;ga("sokong_qr",{});
       var d=document.createElement("div");d.className="sup-modal";d.innerHTML='<div class="sup-m-in"><img src="'+im.src+'" alt="'+esc(im.alt)+'"><p>Imbas dengan aplikasi bank / e-dompet anda. Terima kasih! 🙏</p><button type="button">Tutup</button></div>';
       d.addEventListener("click",function(ev){if(ev.target===d||ev.target.tagName==="BUTTON")d.remove()});document.body.appendChild(d);return}
-    var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});
+    var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});if(e.target.closest&&e.target.closest("[data-wa]"))ga("whatsapp_iklan",{});
   });
   document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=document.querySelector(".sup-modal");if(m)m.remove()}});
 })();

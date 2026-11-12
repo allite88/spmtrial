@@ -62,6 +62,8 @@
   });
   $("ph-on").addEventListener("input", function () { SITE.placeholder.on = $("ph-on").checked; dirty(); });
   $("ph-text").addEventListener("input", function () { SITE.placeholder.text = $("ph-text").value; dirty(); });
+  $("ph-wa").addEventListener("input", function () { var v = $("ph-wa").value.replace(/\D/g, ""); if (/^0/.test(v)) v = "6" + v; SITE.placeholder.wa = v; dirty(); });
+  $("ph-watext").addEventListener("input", function () { SITE.placeholder.waText = $("ph-watext").value; dirty(); });
 
   // ---- sponsors
   function whereOpts(sel) {
@@ -107,7 +109,7 @@
     var s = SITE.support;
     $("sup-on").checked = !!s.on; $("sup-title").value = s.title || ""; $("sup-text").value = s.text || "";
     $("sup-link").value = s.link || ""; $("sup-note").value = s.note || ""; setSupImg(s.img);
-    $("ph-on").checked = !!SITE.placeholder.on; $("ph-text").value = SITE.placeholder.text || "";
+    $("ph-on").checked = !!SITE.placeholder.on; $("ph-text").value = SITE.placeholder.text || ""; $("ph-wa").value = SITE.placeholder.wa ? SITE.placeholder.wa.replace(/^60/, "0") : ""; $("ph-watext").value = SITE.placeholder.waText || "";
     drawSponsors();
   }
   function load() {
