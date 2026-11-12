@@ -92,7 +92,24 @@ def main():
 
     print("4/4 Building site…")
     subprocess.run([sys.executable, os.path.join(HERE, "build.py")], check=True)
+    ping_indexnow()
     print("Done. Upload the site/ folder to your host.")
+
+def ping_indexnow():
+    """Tell Bing (and other IndexNow engines) which pages exist, so new trial papers get indexed fast.
+    Bing's index also feeds ChatGPT search, Copilot and DuckDuckGo. Never fails the update."""
+    try:
+        import json, re, urllib.request
+        cfg = json.load(open(os.path.join(ROOT, "config.json")))
+        key, site = cfg.get("indexnow_key"), cfg.get("site_url", "").rstrip("/")
+        if not key or not site: return
+        xml = open(os.path.join(ROOT, "site", "sitemap.xml"), encoding="utf-8").read()
+        urls = re.findall(r"<loc>([^<]+)</loc>", xml)[:10000]
+        body = json.dumps({"host": site.split("//")[1], "key": key, "keyLocation": f"{site}/{key}.txt", "urlList": urls}).encode()
+        req = urllib.request.Request("https://api.indexnow.org/indexnow", data=body, headers={"content-type": "application/json; charset=utf-8"})
+        print("    IndexNow:", urllib.request.urlopen(req, timeout=30).status, f"({len(urls)} URLs)")
+    except Exception as e:
+        print("    IndexNow skipped:", e)
 
 if __name__ == "__main__":
     main()
