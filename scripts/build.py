@@ -317,7 +317,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 {('<script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","%s");</script>' % (E(GA4), E(GA4))) if GA4 else ''}
 {''.join(jsonld(x) for x in lds)}
 </head>
-<body>
+<body data-pg="{'home' if path == '/' else ('s:' + path.split('/')[2]) if path.startswith('/spm/') and path.count('/') >= 3 else 'other'}">
 <a class="skip" href="#main">Langkau ke kandungan</a>
 <header class="top">
   <div class="wrap top-in">
@@ -332,9 +332,12 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
     </nav>
   </div>
 </header>
+<div id="sup-strip"></div>
 <main id="main" class="wrap">
 {crumbs_html}
+<div id="spx" class="spx"></div>
 {body}
+<div id="sup-card"></div>
 </main>
 <footer class="foot">
   <div class="wrap">
@@ -348,7 +351,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 </html>"""
     if BASE:
         doc = doc.replace('href="/', 'href="%s/' % BASE).replace('action="/', 'action="%s/' % BASE)
-    doc = doc.replace("<script>(function(){", '<script>window.BASE=%s;(function(){' % json.dumps(BASE), 1)
+    doc = doc.replace("<script>(function(){", '<script>window.BASE=%s;window.CONTACT=%s;(function(){' % (json.dumps(BASE), json.dumps(CONTACT)), 1)
     fp = os.path.join(OUT, path.strip("/"), "index.html") if path.endswith("/") else os.path.join(OUT, path.strip("/"))
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     open(fp, "w", encoding="utf-8").write(doc)
@@ -835,10 +838,11 @@ json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live
 json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
 _ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
 _av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), "rb").read()).hexdigest()[:8]
-_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('"rows.json"', '"rows.json"')
+_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('"rows.json"', '"rows.json"')
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
+shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), os.path.join(OUT, "admin", "admin-site.js"))
 print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["id"] in QUIZ))
 
 # ---- static content pages

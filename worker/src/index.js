@@ -14,6 +14,27 @@ const json = (data, status = 200, extra = {}) =>
 
 const okUrl = (u) => typeof u === "string" && /^https?:\/\/[^\s"<>]+$/i.test(u) && u.length < 2000;
 
+const SITE_KEY = "site";
+const MEDIA_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" };
+
+function cleanSite(c) {
+  const str = (v, n) => String(v == null ? "" : v).slice(0, n);
+  const url = (v) => { v = str(v, 2000).trim(); return v === "" || okUrl(v) || /^\/media\/[\w.-]+$/.test(v) ? v : null; };
+  const sup = c.support || {};
+  const out = {
+    support: { on: !!sup.on, title: str(sup.title, 120), text: str(sup.text, 600), img: url(sup.img), link: url(sup.link), note: str(sup.note, 160) },
+    placeholder: { on: !!(c.placeholder || {}).on, text: str((c.placeholder || {}).text, 200) },
+    sponsors: [],
+  };
+  if (out.support.img === null || out.support.link === null) throw new Error("Pautan sokongan tidak sah");
+  for (const sp of (Array.isArray(c.sponsors) ? c.sponsors : []).slice(0, 100)) {
+    const o = { id: str(sp.id, 40) || Math.random().toString(36).slice(2, 10), on: !!sp.on, name: str(sp.name, 120), img: url(sp.img), url: url(sp.url), where: str(sp.where, 80) || "all" };
+    if (o.img === null || o.url === null) throw new Error("Pautan iklan tidak sah: " + (o.name || o.id));
+    out.sponsors.push(o);
+  }
+  return out;
+}
+
 async function load(env) {
   return (await env.QUIZ.get(KEY, "json")) || {};
 }
@@ -29,6 +50,47 @@ export default {
         "cache-control": "public, max-age=30",
         "access-control-allow-origin": "*",
       });
+    }
+
+    if (path === "/site-config.json" && req.method === "GET") {
+      return json((await env.QUIZ.get(SITE_KEY, "json")) || {}, 200, {
+        "cache-control": "public, max-age=60",
+        "access-control-allow-origin": "*",
+      });
+    }
+
+    if (path.startsWith("/media/") && req.method === "GET") {
+      const { value, metadata } = await env.QUIZ.getWithMetadata("media:" + path.slice(7), "arrayBuffer");
+      if (!value) return new Response("Not found", { status: 404 });
+      return new Response(value, { headers: { "content-type": (metadata && metadata.type) || "application/octet-stream", "cache-control": "public, max-age=31536000, immutable" } });
+    }
+
+    if (path === "/admin/api/site" || path === "/admin/api/upload") {
+      const who = (req.headers.get("cf-access-authenticated-user-email") || "").toLowerCase();
+      const allowed = (env.ADMIN_EMAILS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+      if (!who || !allowed.includes(who)) return json({ error: "Tidak dibenarkan" }, 403);
+
+      if (path === "/admin/api/upload" && req.method === "POST") {
+        const type = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+        const ext = MEDIA_TYPES[type];
+        if (!ext) return json({ error: "Jenis fail mesti PNG / JPG / WEBP / GIF" }, 400);
+        const buf = await req.arrayBuffer();
+        if (!buf.byteLength || buf.byteLength > 3 * 1024 * 1024) return json({ error: "Gambar mesti di bawah 3 MB" }, 400);
+        const name = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + "." + ext;
+        await env.QUIZ.put("media:" + name, buf, { metadata: { type, by: who } });
+        return json({ ok: true, url: "/media/" + name });
+      }
+      if (path === "/admin/api/site" && req.method === "GET")
+        return json({ site: (await env.QUIZ.get(SITE_KEY, "json")) || {}, user: who }, 200, { "cache-control": "no-store" });
+      if (path === "/admin/api/site" && req.method === "POST") {
+        let site;
+        try { site = cleanSite(await req.json()); } catch (e) { return json({ error: e.message || "JSON tidak sah" }, 400); }
+        const old = await env.QUIZ.get(SITE_KEY);
+        if (old) await env.QUIZ.put("backup-site:" + new Date().toISOString(), old, { expirationTtl: 31536000 });
+        await env.QUIZ.put(SITE_KEY, JSON.stringify(site));
+        return json({ ok: true, site });
+      }
+      return json({ error: "Kaedah tidak disokong" }, 405);
     }
 
     if (path === "/admin/api/quiz") {

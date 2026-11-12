@@ -10,6 +10,50 @@ QZP.then(function(){
     alliteFor(id).forEach(function(l){var a=document.createElement("a");a.className="c c-allite";a.href=l[1];a.target="_blank";a.rel="noopener";a.textContent=l[0];rc.appendChild(a)});
   });
 });
+// ---- support QR + sponsor slot (edited in /admin, served by the Cloudflare worker as /site-config.json)
+(function(){
+  var B=window.BASE||"",K="spmtrial-site";
+  var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+  var src=function(u){return /^\/media\//.test(u)?B+u:u};
+  var ga=function(n,p){try{if(window.gtag)gtag("event",n,p)}catch(e){}};
+  function draw(c){
+    c=c||{};var s=c.support||{},pg=document.body.getAttribute("data-pg")||"other";
+    var strip=document.getElementById("sup-strip"),card=document.getElementById("sup-card"),spx=document.getElementById("spx");
+    var hero=document.querySelector("main .hero");if(spx&&hero&&spx.nextElementSibling!==hero.nextElementSibling&&hero.parentNode)hero.parentNode.insertBefore(spx,hero.nextSibling);
+    if(strip&&card){
+      if(s.on&&s.img){
+        var t=esc(s.title||"Sokong SPMTrial"),tx=esc(s.text||"");
+        strip.innerHTML='<div class="sup-s"><div class="wrap sup-s-in"><span>❤️ <b>'+t+'</b> <span class="sup-s-t">— laman belajar percuma &amp; bersih, dikekalkan bersama pelajar.</span></span><button type="button" class="sup-btn" data-sup>Imbas QR untuk sokong</button></div></div>';
+        card.innerHTML='<section class="sup-c" id="sokong"><div class="sup-c-txt"><h2>❤️ '+t+'</h2><p>'+tx+'</p>'+(s.link?'<p><a class="sup-link" href="'+esc(s.link)+'" target="_blank" rel="noopener">Sokong melalui pautan ini ↗</a></p>':'')+(s.note?'<p class="muted">'+esc(s.note)+'</p>':'')+'</div><button type="button" class="sup-qr" data-sup aria-label="Besarkan kod QR"><img src="'+esc(src(s.img))+'" alt="Kod QR sokongan '+t+'" loading="lazy" width="180" height="180"></button></section>';
+      }else{strip.innerHTML="";card.innerHTML=""}
+    }
+    if(spx){
+      var L=(c.sponsors||[]).filter(function(x){return x.on&&x.img}),m=L.filter(function(x){return x.where===pg});
+      if(!m.length)m=L.filter(function(x){return x.where==="all"||(x.where==="s:*"&&pg.indexOf("s:")===0)});
+      var a=m.length?m[Math.floor(Math.random()*m.length)]:null,ph=c.placeholder||{};
+      if(a){
+        spx.innerHTML='<span class="adl">Iklan · Penaja</span>'+(a.url?'<a href="'+esc(a.url)+'" target="_blank" rel="sponsored noopener" data-spx="'+esc(a.name||a.id)+'">':'<div>')+'<img src="'+esc(src(a.img))+'" alt="'+esc(a.name||"Iklan")+'">'+(a.url?'</a>':'</div>');
+        spx.className="spx on";
+      }else if(ph.on){
+        spx.innerHTML='<a class="spx-ph" href="mailto:'+esc(window.CONTACT||"")+'?subject=Iklan%20di%20SPMTrial"><b>Ruang iklan</b><span>'+esc(ph.text||"Universiti / kolej / pusat tuisyen: iklankan di sini")+'</span></a>';
+        spx.className="spx on";
+      }else{spx.innerHTML="";spx.className="spx"}
+    }
+  }
+  var cached=null;try{cached=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
+  if(cached)draw(cached);
+  fetch(B+"/site-config.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():null}).then(function(c){
+    if(!c)return;var j=JSON.stringify(c);if(!cached||j!==JSON.stringify(cached))draw(c);try{localStorage.setItem(K,j)}catch(e){}
+  }).catch(function(){});
+  document.addEventListener("click",function(e){
+    var q=e.target.closest&&e.target.closest("[data-sup]");
+    if(q){e.preventDefault();var im=document.querySelector(".sup-qr img");if(!im)return;ga("sokong_qr",{});
+      var d=document.createElement("div");d.className="sup-modal";d.innerHTML='<div class="sup-m-in"><img src="'+im.src+'" alt="'+esc(im.alt)+'"><p>Imbas dengan aplikasi bank / e-dompet anda. Terima kasih! 🙏</p><button type="button">Tutup</button></div>';
+      d.addEventListener("click",function(ev){if(ev.target===d||ev.target.tagName==="BUTTON")d.remove()});document.body.appendChild(d);return}
+    var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});
+  });
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=document.querySelector(".sup-modal");if(m)m.remove()}});
+})();
 var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")};
 // ---- in-page filters
 var f=document.querySelector("[data-filters]");
