@@ -105,3 +105,4 @@ h2.mini{font-size:14px;color:var(--mut);margin:14px 0 0;border:0;padding:0;text-
 .spx-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:90px;border:2px dashed var(--line);border-radius:10px;color:var(--mut);text-decoration:none;font-size:13.5px;text-align:center;padding:10px}
 .spx-ph b{color:var(--ink);font-size:15px}
 @media (max-width:640px){.sup-s-in{flex-wrap:nowrap;padding:6px 12px;font-size:13px}.sup-btn{font-size:12.5px;padding:5px 11px}}
+.sup-m-t{margin:10px 0 4px;line-height:1.45}.sup-m-t b{font-size:15.5px}
