@@ -5,8 +5,8 @@ compatibility_date = "2026-10-01"
 workers_dev = false
 
 routes = [
-  { pattern = "spmtrial.com/quiz-links.json", zone_name = "spmtrial.com" },
-  { pattern = "www.spmtrial.com/quiz-links.json", zone_name = "spmtrial.com" },
+  { pattern = "spmtrial.com/quiz-links.json*", zone_name = "spmtrial.com" },
+  { pattern = "www.spmtrial.com/quiz-links.json*", zone_name = "spmtrial.com" },
   { pattern = "spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
   { pattern = "www.spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
 ]
