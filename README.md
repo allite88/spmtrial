@@ -87,3 +87,10 @@ python3 scripts/update.py
 ```bash
 AD_PREVIEW=1 python3 scripts/build.py
 ```
+
+## 支持 QR 码 + 广告位（后台“❤️ Sokongan & Iklan”）
+- 打开 https://spmtrial.com/admin/#iklan（只有 sgece88@gmail.com 能登入）。
+- **支持 QR**：上传 QR 图 → 改标题/文字 → 按“Simpan & terbitkan”。每页顶部出现一条“Sokong SPMTrial”，页尾有大 QR 卡；没上传 QR 就不显示。
+- **广告**：按“+ Tambah iklan” → 上传图片（建议 1200×300）→ 填点击后要去的网址 → 选显示在哪里（全部 / 主页 / 某科目）→ 保存。
+- 没有广告时，可显示“Ruang iklan”空位（点了会发邮件给你），方便大学/补习中心联系。
+- 改完约 1 分钟生效，不需要重新建站。图片存在 Cloudflare KV。
