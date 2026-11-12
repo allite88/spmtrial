@@ -834,6 +834,8 @@ json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live
           open(os.path.join(OUT, "admin", "rows.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
 _ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
+_av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), "rb").read()).hexdigest()[:8]
+_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('"rows.json"', '"rows.json"')
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
