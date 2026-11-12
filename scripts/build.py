@@ -193,6 +193,18 @@ info_links = []
 MULTI = lambda title, url: ("semua subjek" in title.lower()) or ("sebenar" in title.lower() and "tahun lepas" in title.lower()) \
     or "koleksi-bank-soalan" in url or re.search(r"amali|\buas\b", title.lower())
 
+import hashlib
+QUIZ_FILE = os.path.join(ROOT, "data", "quiz_links.json")
+QUIZ = json.load(open(QUIZ_FILE, encoding="utf-8")) if os.path.exists(QUIZ_FILE) else {}
+_rid_seen = defaultdict(int)
+
+def make_rid(subj, typ, g, year):
+    """Stable id for a row so quiz links survive weekly re-crawls."""
+    key = "|".join([subj, typ, str(year or ""), g["h2"], g["h3"], g["ctx"], g["label"]]).lower()
+    h = hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]
+    _rid_seen[h] += 1
+    return h if _rid_seen[h] == 1 else "%s-%d" % (h, _rid_seen[h])
+
 def add_rows(subj, typ, src_url, src_title, groups, multi=False):
     rows = []
     for g in groups:
@@ -204,7 +216,8 @@ def add_rows(subj, typ, src_url, src_title, groups, multi=False):
             links.append({"t": link_label(l["t"], u), "u": u, "k": link_kind(l["t"] or g["label"], u)})
         if not links: continue
         year = find_year(g["label"], g["ctx"], g["h3"], g["h2"]) if typ in ("percubaan", "sebenar", "amali") else None
-        rows.append({"h2": g["h2"], "h3": g["h3"], "ctx": g["ctx"], "label": g["label"], "year": year,
+        rows.append({"rid": make_rid(subj, typ, g, year), "src": src_url, "typ": typ, "subj": subj,
+                     "h2": g["h2"], "h3": g["h3"], "ctx": g["ctx"], "label": g["label"], "year": year,
                      "state": find_state(g["label"] + " " + g["ctx"]) if typ in ("percubaan", "amali") else None,
                      "links": links})
     if rows:
@@ -490,13 +503,25 @@ def layout_json(r):
         return ["c", [[n, t, pack(ls)] for n, t, ls in lay[1]], pack(lay[2])]
     return [lay[0][0], pack(lay[1])]
 
+def allite_links(r):
+    q = QUIZ.get(r.get("rid", ""), {})
+    out = []
+    for k, name in (("k1", "Allite K1 Online Quiz"), ("k2", "Allite K2 Online Quiz")):
+        u = (q.get(k) or "").strip()
+        if u.startswith("http"): out.append({"t": name, "u": u, "k": "allite"})
+    return out
+
 def row_html(r, subj, year_ctx=None, show_label=None):
     label = show_label if show_label is not None else (r["label"] or r["ctx"] or r["h3"] or r["h2"])
     label = label.strip(" :")
     disp = strip_label(label, subj, year_ctx) if year_ctx else label
     attrs = ' data-y="%s" data-s="%s"' % (r["year"] or "", E(r["state"] or ""))
-    return '<div class="row"%s><div class="rl" title="%s">%s</div>%s</div>' % (
-        attrs, E(label), E(disp) if disp else "&nbsp;", links_html(r))
+    lh = links_html(r)
+    al = allite_links(r)
+    if al:   # same line as the paper buttons: insert inside the buttons container
+        lh = lh[:-len("</div>")] + chips(al) + "</div>"
+    return '<div class="row" id="r-%s"%s><div class="rl" title="%s">%s</div>%s</div>' % (
+        E(r.get("rid", "")), attrs, E(label), E(disp) if disp else "&nbsp;", lh)
 
 def render_generic(blocks, subj):
     """Render blocks from source pages: heading per source, sub-heading per h2/h3/ctx change."""
@@ -624,7 +649,8 @@ for s in subjects_live:
                 ctx = r["ctx"].strip(" :")
                 full = (ctx + " › " + lab) if ctx and ctx != lab else lab
                 search_index.append([slug, t, r["year"] or 0, full,
-                                     " ".join(l["t"] for l in r["links"]), layout_json(r)])
+                                     " ".join(l["t"] for l in r["links"]), layout_json(r),
+                                     [[l["t"], l["u"], l["k"]] for l in allite_links(r)]])
 
 # ---- year pages + state pages
 def slugify(x): return re.sub(r"[^a-z0-9]+", "-", x.lower()).strip("-")
@@ -788,6 +814,31 @@ page("/", f"Trial SPM {trial_years[0]} — Soalan Percubaan SPM {trial_years[0]}
                 faq_ld(home_faqs)],
      keywords=f"soalan percubaan spm {trial_years[0]}, trial spm, skema jawapan spm, soalan sebenar spm, nota spm, buku teks tingkatan 4, buku teks tingkatan 5")
 
+# ---- admin (hidden, noindex): every row with its source links + Allite quiz inputs
+adm_rows, adm_years, adm_states = [], set(), set()
+for s_ in subjects_live:
+    for t in TYPES:
+        for b in store[s_[0]].get(t, []):
+            for r in b["rows"]:
+                lab = (r["label"] or r["ctx"] or r["h3"] or r["h2"]).strip(" :")
+                ctx = r["ctx"].strip(" :")
+                adm_rows.append({"id": r["rid"], "s": s_[0], "sn": s_[1], "t": t, "tn": TYPES[t][0], "y": r["year"] or "",
+                                 "st": r["state"] or "", "l": (ctx + " › " + lab) if ctx and ctx != lab else lab,
+                                 "src": r.get("src", ""), "p": BASE + "/spm/%s/" % s_[0],
+                                 "k": [[l["t"], l["u"], l["k"]] for l in r["links"]]})
+                if r["year"]: adm_years.add(r["year"])
+                if r["state"]: adm_states.add(r["state"])
+os.makedirs(os.path.join(OUT, "admin"), exist_ok=True)
+json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live], "types": [[k, v[0]] for k, v in TYPES.items()],
+           "years": sorted(adm_years, reverse=True), "states": [x for x in STATES if x in adm_states]},
+          open(os.path.join(OUT, "admin", "rows.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
+_ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
+_ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
+open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
+shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
+print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["id"] in QUIZ))
+
 # ---- static content pages
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages_static.py"), encoding="utf-8").read())
 
@@ -805,7 +856,7 @@ sm.append("</urlset>")
 open(os.path.join(OUT, "sitemap.xml"), "w").write("\n".join(sm))
 if AD_CLIENT:
     open(os.path.join(OUT, "ads.txt"), "w").write("google.com, %s, DIRECT, f08c47fec0942fa0\n" % AD_CLIENT.replace("ca-pub-", "pub-"))
-open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nDisallow: /cari/index.json\n\nSitemap: {SITE_URL}/sitemap.xml\n")
+open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nDisallow: /cari/index.json\nDisallow: /admin/\n\nSitemap: {SITE_URL}/sitemap.xml\n")
 llms = [f"# {SITE_NAME}", "", f"> {SITE_TAGLINE}. Direktori percuma {TOTAL} pautan bahan SPM (Sijil Pelajaran Malaysia) yang dikongsi secara awam: soalan percubaan (trial) {trial_years[-1]}–{trial_years[0]} dengan skema jawapan ikut negeri, soalan sebenar SPM, nota ringkas, latihan dan buku teks KSSM Tingkatan 4 & 5.", "",
         "## Halaman utama", f"- [Soalan Sebenar SPM]({SITE_URL}/soalan-sebenar-spm/): kertas peperiksaan sebenar SPM tahun lepas, semua subjek"]
 llms += [f"- [Soalan Percubaan SPM {y}]({SITE_URL}/soalan-percubaan-spm-{y}/): trial SPM {y} + skema jawapan, semua subjek" for y in trial_years]

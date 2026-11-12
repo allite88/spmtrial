@@ -46,6 +46,7 @@ if(box){
     return '<div class="rc rc-chap">'+L[1].map(function(c){return '<div class="ch"><div class="chn"><b>'+esc(c[0])+'</b>'+(c[1]?" "+esc(c[1]):"")+'</div><div class="chl">'+ch(c[2])+'</div></div>'}).join("")+
       (L[2].length?'<div class="rc rc-grid">'+ch(L[2])+'</div>':"")+'</div>';
   };
+  var withAllite=function(h,A){return (A&&A.length)?h.slice(0,-6)+ch(A)+'</div>':h};
   var go=function(){
     if(!D)return;var terms=norm(box.value).split(/\s+/).filter(Boolean),t=sel.value;
     history.replaceState(null,"","?q="+encodeURIComponent(box.value)+(t?"&t="+t:""));
@@ -56,7 +57,7 @@ if(box){
     res.sort(function(a,b){return (b[2]||0)-(a[2]||0)});
     info.textContent=res.length+" hasil"+(res.length>300?" (memaparkan 300 teratas — tambah kata carian untuk tapis)":"");
     out.innerHTML=res.slice(0,300).map(function(r){
-      return '<div class="row"><div class="rl"><div class="res-h"><b><a href="'+(window.BASE||"")+'/spm/'+r[0]+'/">'+esc(D.s[r[0]][0])+'</a></b> · '+esc(D.t[r[1]])+(r[2]?" · "+r[2]:"")+'</div>'+esc(r[3])+'</div>'+lay(r[5])+'</div>'}).join("");
+      return '<div class="row"><div class="rl"><div class="res-h"><b><a href="'+(window.BASE||"")+'/spm/'+r[0]+'/">'+esc(D.s[r[0]][0])+'</a></b> · '+esc(D.t[r[1]])+(r[2]?" · "+r[2]:"")+'</div>'+esc(r[3])+'</div>'+withAllite(lay(r[5]),r[6])+'</div>'}).join("");
   };
   var tm2;box.addEventListener("input",function(){clearTimeout(tm2);tm2=setTimeout(go,150)});sel.addEventListener("change",go);
 }
