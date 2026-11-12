@@ -195,7 +195,7 @@ MULTI = lambda title, url: ("semua subjek" in title.lower()) or ("sebenar" in ti
 
 import hashlib
 QUIZ_FILE = os.path.join(ROOT, "data", "quiz_links.json")
-QUIZ = json.load(open(QUIZ_FILE, encoding="utf-8")) if os.path.exists(QUIZ_FILE) else {}
+QUIZ = {}   # Allite quiz links live in Cloudflare KV (worker/) and are added in the browser by app.js
 _rid_seen = defaultdict(int)
 
 def make_rid(subj, typ, g, year):
@@ -650,7 +650,7 @@ for s in subjects_live:
                 full = (ctx + " › " + lab) if ctx and ctx != lab else lab
                 search_index.append([slug, t, r["year"] or 0, full,
                                      " ".join(l["t"] for l in r["links"]), layout_json(r),
-                                     [[l["t"], l["u"], l["k"]] for l in allite_links(r)]])
+                                     r["rid"]])
 
 # ---- year pages + state pages
 def slugify(x): return re.sub(r"[^a-z0-9]+", "-", x.lower()).strip("-")

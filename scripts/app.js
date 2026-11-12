@@ -1,4 +1,15 @@
 (function(){
+// ---- Allite online quiz buttons (links managed in /admin, served by the Cloudflare worker)
+var QZ={},QZP=fetch((window.BASE||"")+"/quiz-links.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}}).then(function(j){QZ=j||{};return QZ});
+function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push(["Allite K1 Online Quiz",q.k1,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);return o}
+window.alliteFor=alliteFor;
+QZP.then(function(){
+  Object.keys(QZ).forEach(function(id){
+    var row=document.getElementById("r-"+id); if(!row)return;
+    var rc=row.querySelector(".rc"); if(!rc||rc.querySelector(".c-allite"))return;
+    alliteFor(id).forEach(function(l){var a=document.createElement("a");a.className="c c-allite";a.href=l[1];a.target="_blank";a.rel="noopener";a.textContent=l[0];rc.appendChild(a)});
+  });
+});
 var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")};
 // ---- in-page filters
 var f=document.querySelector("[data-filters]");
@@ -37,7 +48,7 @@ if(box){
   var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
   var p=new URLSearchParams(location.search);box.value=p.get("q")||"";if(p.get("t"))sel.value=p.get("t");
   fetch((window.BASE||"")+"/cari/index.json").then(function(r){return r.json()}).then(function(d){
-    D=d;d.r.forEach(function(r){r._t=norm(d.s[r[0]].join(" ")+" "+d.t[r[1]]+" "+(r[2]||"")+" "+r[3]+" "+r[4])});go();
+    D=d;d.r.forEach(function(r){r._t=norm(d.s[r[0]].join(" ")+" "+d.t[r[1]]+" "+(r[2]||"")+" "+r[3]+" "+r[4])});QZP.then(go);
   });
   var ch=function(ls){return ls.map(function(l){return '<a class="c c-'+l[2]+'" href="'+esc(l[1])+'" target="_blank" rel="noopener nofollow">'+esc(l[0])+'</a>'}).join("")};
   var lay=function(L){
@@ -57,7 +68,7 @@ if(box){
     res.sort(function(a,b){return (b[2]||0)-(a[2]||0)});
     info.textContent=res.length+" hasil"+(res.length>300?" (memaparkan 300 teratas — tambah kata carian untuk tapis)":"");
     out.innerHTML=res.slice(0,300).map(function(r){
-      return '<div class="row"><div class="rl"><div class="res-h"><b><a href="'+(window.BASE||"")+'/spm/'+r[0]+'/">'+esc(D.s[r[0]][0])+'</a></b> · '+esc(D.t[r[1]])+(r[2]?" · "+r[2]:"")+'</div>'+esc(r[3])+'</div>'+withAllite(lay(r[5]),r[6])+'</div>'}).join("");
+      return '<div class="row"><div class="rl"><div class="res-h"><b><a href="'+(window.BASE||"")+'/spm/'+r[0]+'/">'+esc(D.s[r[0]][0])+'</a></b> · '+esc(D.t[r[1]])+(r[2]?" · "+r[2]:"")+'</div>'+esc(r[3])+'</div>'+withAllite(lay(r[5]),alliteFor(r[6]))+'</div>'}).join("");
   };
   var tm2;box.addEventListener("input",function(){clearTimeout(tm2);tm2=setTimeout(go,150)});sel.addEventListener("change",go);
 }

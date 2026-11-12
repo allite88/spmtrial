@@ -1,42 +1,32 @@
 (function () {
-  var CFG = window.ADMIN_CFG, REPO = CFG.repo, PATH = "data/quiz_links.json", LIMIT = 300;
+  var LIMIT = 300, API = "api/quiz";
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var norm = function (s) { return (s || "").toLowerCase(); };
-  var ROWS = [], QUIZ = {}, EDIT = {}, SHA = null;
-  var TOK = ""; try { TOK = localStorage.getItem("spm_admin_tok") || ""; } catch (e) {}
+  var ROWS = [], QUIZ = {}, EDIT = {}, OK = false;
 
   function status(t, cls) { var s = $("status"); s.textContent = t; s.className = cls || "muted"; }
-  function gh(method, url, body) {
-    return fetch("https://api.github.com/repos/" + REPO + url, {
-      method: method, headers: Object.assign({ "Accept": "application/vnd.github+json" }, TOK ? { "Authorization": "Bearer " + TOK } : {}),
-      body: body ? JSON.stringify(body) : undefined
-    }).then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.message || r.status); e.code = r.status; throw e; } return j; }); });
+  function api(method, body) {
+    return fetch(API, { method: method, credentials: "same-origin", cache: "no-store",
+      headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) {
+        var ct = r.headers.get("content-type") || "";
+        if (!ct.includes("json")) { var e = new Error(r.status === 200 ? "Sesi tamat — muat semula halaman untuk log masuk" : "HTTP " + r.status); e.code = r.status; throw e; }
+        return r.json().then(function (j) { if (!r.ok) { var e2 = new Error(j.error || r.status); e2.code = r.status; throw e2; } return j; });
+      });
   }
-  function b64decode(s) { return decodeURIComponent(escape(atob(s.replace(/\n/g, "")))); }
-  function b64encode(s) { return btoa(unescape(encodeURIComponent(s))); }
-
-  // load the live quiz file (from GitHub when a key is set, otherwise the published copy)
   function loadQuiz() {
-    if (TOK) {
-      return gh("GET", "/contents/" + PATH + "?ref=main").then(function (j) { SHA = j.sha; QUIZ = JSON.parse(b64decode(j.content) || "{}"); })
-        .catch(function (e) { if (e.code === 404) { SHA = null; QUIZ = {}; return; } throw e; });
-    }
-    return fetch("quiz_links.json", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; }).then(function (j) { QUIZ = j || {}; });
-  }
-
-  function tokState() {
-    if (!TOK) { $("tokstate").innerHTML = '<span class="warn">Tiada kunci — boleh lihat sahaja, tidak boleh simpan.</span>'; return Promise.resolve(); }
-    $("tokstate").textContent = "Menyemak kunci…";
-    return gh("GET", "").then(function (j) {
-      var canPush = j.permissions && j.permissions.push;
-      $("tokstate").innerHTML = canPush ? '<span class="ok">✓ Kunci sah — boleh simpan ke ' + esc(REPO) + "</span>" : '<span class="err">Kunci tiada kebenaran tulis (Contents: Read and write).</span>';
-    }).catch(function (e) { $("tokstate").innerHTML = '<span class="err">Kunci tidak sah: ' + esc(e.message) + "</span>"; });
+    return api("GET").then(function (j) {
+      QUIZ = j.links || {}; OK = true;
+      $("tokstate").innerHTML = '<span class="ok">✓ Log masuk sebagai ' + esc(j.user) + " — boleh simpan</span>";
+    }).catch(function (e) {
+      OK = false; $("tokstate").innerHTML = '<span class="err">Tidak boleh simpan: ' + esc(e.message) + "</span>";
+    });
   }
 
   function current(rid) { var e = EDIT[rid] || {}, q = QUIZ[rid] || {}; return { k1: e.k1 != null ? e.k1 : (q.k1 || ""), k2: e.k2 != null ? e.k2 : (q.k2 || "") }; }
   function dirtyCount() { return Object.keys(EDIT).length; }
-  function refreshSave() { var n = dirtyCount(); $("save").textContent = "Simpan (" + n + ")"; $("save").disabled = !n || !TOK; }
+  function refreshSave() { var n = dirtyCount(); $("save").textContent = "Simpan (" + n + ")"; $("save").disabled = !n || !OK; }
 
   function filtered() {
     var fs = $("fsub").value, ft = $("ftyp").value, fy = $("fyear").value, fst = $("fstate").value, terms = norm($("fq").value).split(/\s+/).filter(Boolean);
@@ -84,29 +74,16 @@
     var bad = Object.keys(EDIT).filter(function (id) { var e = EDIT[id]; return [e.k1, e.k2].some(function (v) { return v && !/^https?:\/\//.test(v); }); });
     if (bad.length) { status("Ada pautan tidak sah (mesti bermula dengan https://)", "err"); return; }
     $("save").disabled = true; status("Menyimpan…");
-    var attempt = function (tries) {
-      return loadQuiz().then(function () {   // merge onto the latest version
-        Object.keys(EDIT).forEach(function (id) {
-          var c = Object.assign({}, QUIZ[id] || {}, EDIT[id]);
-          Object.keys(c).forEach(function (k) { if (!c[k]) delete c[k]; });
-          if (Object.keys(c).length) QUIZ[id] = c; else delete QUIZ[id];
-        });
-        var body = { message: "Admin: kemas kini " + dirtyCount() + " pautan Allite quiz", content: b64encode(JSON.stringify(QUIZ, null, 1) + "\n"), branch: "main" };
-        if (SHA) body.sha = SHA;
-        return gh("PUT", "/contents/" + PATH, body);
-      }).catch(function (e) { if ((e.code === 409 || e.code === 422) && tries > 0) return attempt(tries - 1); throw e; });
-    };
-    attempt(2).then(function (j) {
-      SHA = j.content && j.content.sha; EDIT = {};
-      status("✓ Disimpan. Laman akan dikemas kini dalam ~1–2 minit.", "ok"); render();
+    api("POST", { changes: EDIT }).then(function (j) {
+      Object.keys(EDIT).forEach(function (id) {
+        var c = Object.assign({}, QUIZ[id] || {}, EDIT[id]);
+        Object.keys(c).forEach(function (k) { if (!c[k]) delete c[k]; });
+        if (Object.keys(c).length) QUIZ[id] = c; else delete QUIZ[id];
+      });
+      EDIT = {};
+      status("✓ Disimpan (" + j.saved + "). Butang Allite sudah muncul di laman.", "ok"); render();
     }).catch(function (e) { status("Gagal simpan: " + e.message, "err"); refreshSave(); });
   });
-
-  $("tokset").addEventListener("click", function () {
-    TOK = $("tok").value.trim(); try { localStorage.setItem("spm_admin_tok", TOK); } catch (e) {}
-    $("tok").value = ""; tokState().then(loadQuiz).then(render);
-  });
-  $("tokclear").addEventListener("click", function () { TOK = ""; try { localStorage.removeItem("spm_admin_tok"); } catch (e) {} tokState(); refreshSave(); });
 
   $("csv").addEventListener("click", function () {
     var q = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
@@ -131,6 +108,6 @@
     $("ftyp").innerHTML = '<option value="">Semua jenis</option>'; opt("ftyp", d.types, "percubaan");
     opt("fyear", d.years.map(function (y) { return [String(y), String(y)]; }));
     opt("fstate", d.states.map(function (s) { return [s, s]; }));
-    return tokState().then(loadQuiz);
+    return loadQuiz();
   }).then(function () { status(""); render(); }).catch(function (e) { status("Ralat: " + e.message, "err"); });
 })();

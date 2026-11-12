@@ -1,0 +1,19 @@
+account_id = "91a92df326e9a38bc5905a587d588cb3"
+name = "spmtrial-quiz"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [
+  { pattern = "spmtrial.com/quiz-links.json", zone_name = "spmtrial.com" },
+  { pattern = "www.spmtrial.com/quiz-links.json", zone_name = "spmtrial.com" },
+  { pattern = "spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
+  { pattern = "www.spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
+]
+
+[vars]
+ADMIN_EMAILS = "sgece88@gmail.com"
+
+[[kv_namespaces]]
+binding = "QUIZ"
+id = "62e147cfe5b1498484f1e638bf6b3a94"
