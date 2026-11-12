@@ -1,7 +1,7 @@
 (function(){
 // ---- Allite online quiz buttons (links managed in /admin, served by the Cloudflare worker)
 var QZ={},QZP=fetch((window.BASE||"")+"/quiz-links.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}}).then(function(j){QZ=j||{};return QZ});
-function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push(["Allite K1 Online Quiz",q.k1,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);return o}
+function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push([q.k1b?"Allite K1 Bhg A Quiz":"Allite K1 Online Quiz",q.k1,"allite"]);if(q.k1b)o.push(["Allite K1 Bhg B Quiz",q.k1b,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);return o}
 window.alliteFor=alliteFor;
 QZP.then(function(){
   Object.keys(QZ).forEach(function(id){

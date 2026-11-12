@@ -89,14 +89,15 @@ def run(path, kind, ycol, scol, ucol, subcol):
                        "baris_admin": " | ".join(r["l"] for r in hits), "id": " ".join(r["id"] for r in hits),
                        "amaran": warn, "pautan": url})
 
-run(sys.argv[1], "k1", "年份", "州属", "做题页URL", "科目")
-run(sys.argv[2], "k2", "年份", "州属", "K2产品页URL", "科目")
+run(sys.argv[1], "k1", "年份", "州属", "URL", "科目")
+run(sys.argv[2], "k2", "年份", "州属", "URL", "科目")
+if len(sys.argv) > 5: run(sys.argv[5], "k1b", "年份", "州属", "URL", "科目")
 json.dump(out, open(sys.argv[3], "w"), ensure_ascii=False, indent=1)
 with open(sys.argv[4], "w", encoding="utf-8-sig", newline="") as f:
     w = csv.DictWriter(f, fieldnames=list(report[0].keys())); w.writeheader(); w.writerows(report)
 
 from collections import Counter
-for kind in ("K1", "K2"):
+for kind in ("K1", "K2", "K1B"):
     c = Counter(r["status"] for r in report if r["jenis"] == kind)
     print(kind, dict(c))
 print("rows with links:", len(out))

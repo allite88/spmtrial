@@ -1,5 +1,5 @@
 // SPMTrial quiz-links service (Cloudflare Worker + KV).
-//   GET  /quiz-links.json   public, read-only: { rowId: { k1, k2 } }  (used by the site to show Allite buttons)
+//   GET  /quiz-links.json   public, read-only: { rowId: { k1, k1b, k2 } }  (k1b = 2nd K1 part, e.g. BM Bahagian B)  (used by the site to show Allite buttons)
 //   GET  /admin/api/quiz    admin read  (behind Cloudflare Access)
 //   POST /admin/api/quiz    admin save  (behind Cloudflare Access + email check)
 //        body: { changes: { rowId: { k1: "https://..", k2: "" } } }   ("" removes a link)
@@ -50,7 +50,7 @@ export default {
         for (const [id, v] of Object.entries(changes)) {
           if (!/^[0-9a-f]{10}(-\d+)?$/.test(id) || !v || typeof v !== "object") continue;
           const cur = { ...(links[id] || {}) };
-          for (const k of ["k1", "k2"]) {
+          for (const k of ["k1", "k1b", "k2"]) {
             if (!(k in v)) continue;
             const val = String(v[k] || "").trim();
             if (!val) delete cur[k];
