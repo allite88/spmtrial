@@ -843,8 +843,23 @@ print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages_static.py"), encoding="utf-8").read())
 
 # ---- 404
+_known = json.dumps(sorted(set(SITEMAP)))
+_404 = f"""<script>(function(){{
+  // fix common mistakes automatically: wrong capitals, missing trailing slash, ".html"
+  var known={_known}, base=window.BASE||"", p=location.pathname.slice(base.length)||"/";
+  var c=decodeURIComponent(p).toLowerCase().replace(/index\\.html$/,"").replace(/\\.html$/,"/").replace(/\\/+$/,"")+"/";
+  if(c!==p && known.indexOf(c)>-1){{location.replace(base+c+location.search+location.hash);return;}}
+  // otherwise suggest a search with words from the bad address
+  var q=decodeURIComponent(p).replace(/[\\/_-]+/g," ").replace(/\\.html?/,"").trim();
+  var i=document.getElementById("q404"); if(i&&q) i.value=q;
+}})();</script>"""
+_cards = "".join(f'<a class="card" href="/spm/{s_[0]}/"><b>{E(s_[1])}</b><span>{count_links(s_[0])} pautan</span></a>' for s_ in sorted(subjects_live, key=lambda x: -count_links(x[0]))[:12])
 page("/404.html", f"Halaman tidak dijumpai | {SITE_NAME}", "Halaman tidak dijumpai.",
-     '<h1>Halaman tidak dijumpai</h1><p><a href="/">Kembali ke utama</a> atau <a href="/cari/">cari bahan</a>.</p>')
+     '<h1>Halaman tidak dijumpai</h1><p class="lead">Maaf, alamat ini tiada. Cuba cari bahan yang anda perlukan:</p>'
+     '<form class="bigsearch" action="/cari/" role="search"><input id="q404" type="search" name="q" placeholder="cth: kimia 2026 johor" aria-label="Cari"><button>Cari</button></form>'
+     '<div class="quick">' + "".join(f'<a href="/soalan-percubaan-spm-{y}/">📝 Trial SPM {y}</a>' for y in trial_years[:3]) +
+     '<a href="/soalan-sebenar-spm/">📄 Soalan Sebenar SPM</a><a href="/">🏠 Utama</a></div>'
+     f'<section class="sec"><h2>Subjek popular</h2><div class="grid sm">{_cards}</div></section>' + _404)
 SITEMAP.remove("/404.html")
 
 # ---- sitemap, robots, llms.txt
