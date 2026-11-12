@@ -128,7 +128,7 @@ STATE_ALIASES = {"penang": "Pulau Pinang", "p. pinang": "Pulau Pinang", "pp": "P
 def find_state(text):
     t = text.lower()
     for s in STATES:
-        if s.lower() in t: return s
+        if re.search(r"\b" + re.escape(s.lower()) + r"\b", t): return s   # whole word: "Perakaunan" is not Perak
     for a, s in STATE_ALIASES.items():
         if s and re.search(r"\b" + re.escape(a) + r"\b", t): return s
     return None
