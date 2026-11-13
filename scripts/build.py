@@ -319,6 +319,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
 {('<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=%s" crossorigin="anonymous"></script>' % E(AD_CLIENT)) if AD_CLIENT else ''}
 {('<meta name="google-adsense-account" content="%s">' % E(AD_CLIENT)) if AD_CLIENT else ''}
 {('<meta name="google-site-verification" content="%s">' % E(GSC)) if GSC else ''}
+{('<meta name="msvalidate.01" content="%s">' % E(CFG.get("bing_verification", ""))) if CFG.get("bing_verification") else ''}
 {('<script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","%s");</script>' % (E(GA4), E(GA4))) if GA4 else ''}
 {''.join(jsonld(x) for x in lds)}
 </head>
