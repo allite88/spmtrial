@@ -103,15 +103,24 @@
   $("own-fq").addEventListener("input", draw);
 
   $("own-save").addEventListener("click", function () {
-    var clean = [], err = "";
-    ROWS.forEach(function (r, i) {
-      var links = r.links.filter(function (l) { return l.u; });
-      if (!r.s) err = err || "Pilih subjek untuk setiap kertas.";
-      if (!links.length) err = err || "Setiap kertas perlu sekurang-kurangnya satu pautan (" + subjName(r.s) + " " + (r.y || "") + ").";
-      links.forEach(function (l) { if (!okUrl(l.u)) err = err || "Pautan mesti bermula dengan https:// — " + l.u.slice(0, 50); });
+    var clean = [], err = "", badId = null;
+    // Blank cards (no subject and no link filled in) are dropped quietly — e.g. "+ Tambah kertas" clicked twice.
+    ROWS = ROWS.filter(function (r) { return r.s || r.links.some(function (l) { return l.u; }); });
+    ROWS.forEach(function (r) {
+      var links = r.links.filter(function (l) { return l.u; }), e = "";
+      if (!r.s) e = "Pilih subjek untuk kertas ini.";
+      else if (!links.length) e = "Kertas ini perlu sekurang-kurangnya satu pautan Google Drive.";
+      links.forEach(function (l) { if (!e && !okUrl(l.u)) e = "Pautan mesti bermula dengan https:// — " + l.u.slice(0, 50); });
+      if (e && !err) { err = e + " (" + (subjName(r.s) || "tiada subjek") + " " + (r.y || "") + " " + (r.label || "") + ")"; badId = r.id; }
       clean.push({ id: r.id, on: r.on, s: r.s, t: r.t, y: r.y || null, st: r.st, label: r.label || r.st, links: links.map(function (l) { return { t: l.t || "Fail", u: l.u }; }), at: r.at });
     });
-    if (err) { state(esc(err), "err"); return; }
+    if (err) {
+      // show every card so the problem one is visible, then scroll to it
+      $("own-fsub").value = ""; $("own-fq").value = ""; draw();
+      var i = ROWS.map(function (r) { return r.id; }).indexOf(badId), el = document.querySelector('.own[data-i="' + i + '"]');
+      if (el) { el.style.borderColor = "#b91c1c"; el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      state(esc(err), "err"); return;
+    }
     $("own-save").disabled = true; state("Menyimpan…");
     api({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ rows: clean }) }).then(function (j) {
       ROWS = j.rows; DIRTY = false; $("own-save").textContent = "Simpan & terbitkan"; draw();
