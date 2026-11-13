@@ -5,7 +5,7 @@ All resources are LINKS to publicly shared files (Google Drive etc.). Nothing is
 Edit SITE_URL / SITE_NAME below before deploying.
 """
 import json, re, os, html, shutil, datetime
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from urllib.parse import urlparse
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -577,6 +577,62 @@ if os.path.exists(OUT): shutil.rmtree(OUT)
 os.makedirs(OUT)
 search_index = []
 
+
+SCI = {"biologi", "fizik", "kimia", "sains", "sains-tambahan", "sains-komputer", "sains-sukan", "srt"}
+MATH = {"matematik", "addmath"}
+LANG_ESSAY = {"bm", "bi", "bahasa-cina", "bahasa-tamil", "bahasa-arab", "bahasa-iban", "est", "kmk", "kesusasteraan-cina", "kesusasteraan-tamil"}
+HUM = {"sejarah", "geografi", "ekonomi", "perniagaan", "prinsip-perakaunan", "pendidikan-moral", "pendidikan-islam", "tasawwur-islam"}
+
+def trial_stats(slug):
+    """Facts computed from the links themselves (so they are always true): latest year, sets, states, answer coverage, papers."""
+    rows = [r for b in store[slug].get("percubaan", []) for r in b["rows"]]
+    yrs = sorted({r["year"] for r in rows if r["year"]}, reverse=True)
+    if not yrs: return None
+    y = yrs[0]
+    ry = [r for r in rows if r["year"] == y]
+    st = Counter(r["state"] for r in ry if r["state"])
+    with_ans = sum(1 for r in ry if any(l["k"] == "ans" for l in r["links"]))
+    papers = Counter()
+    for r in rows:
+        for l in r["links"]:
+            m = re.match(r"^(?:Kertas|Paper)\s*([123])\b", l["t"], re.I)
+            if m and l["k"] == "paper": papers["Kertas " + m.group(1)] += 1
+    return {"y": y, "yrs": yrs, "sets_y": len(ry), "sets_all": len(rows), "states_y": st, "ans_y": with_ans, "papers": papers}
+
+def summary_box(slug, name, en):
+    t = trial_stats(slug)
+    if not t: return ""
+    y, n, st = t["y"], t["sets_y"], t["states_y"]
+    top = ", ".join(x for x, _ in st.most_common(8))
+    pct = round(100 * t["ans_y"] / n) if n else 0
+    li = [f'<li><b>Terkini:</b> {n} set soalan percubaan SPM {y} {E(name)}' + (f' daripada {len(st)} negeri/institusi ({E(top)}{"…" if len(st) > 8 else ""})' if st else "") + '.</li>',
+          f'<li><b>Skema jawapan:</b> {t["ans_y"]} daripada {n} set {y} ({pct}%) disertakan pautan jawapan.</li>']
+    if t["papers"]:
+        li.append('<li><b>Kertas tersedia:</b> ' + ", ".join(f'{k} ({v})' for k, v in sorted(t["papers"].items())) + f' — semua tahun {t["yrs"][-1]}–{y}.</li>')
+    li.append(f'<li><b>Jumlah:</b> {t["sets_all"]} set percubaan {E(name)} dari {len(t["yrs"])} tahun. Dikemas kini setiap minggu (terakhir {TODAY}).</li>')
+    return ('<section class="tldr" aria-label="Ringkasan"><h2>Ringkasan: Trial SPM %s %s</h2><ul>%s</ul></section>' % (E(name), y, "".join(li)))
+
+def study_guide(slug, name):
+    if slug in SCI:
+        tip = f"Untuk {name}, Kertas 2 banyak soalan struktur dan esei — bandingkan jawapan anda dengan <b>kata kunci dalam skema</b>, kerana markah diberi untuk istilah dan fakta yang tepat. Ulang kaji juga soalan berkaitan eksperimen dan rajah."
+    elif slug in MATH:
+        tip = f"Untuk {name}, sentiasa <b>tunjukkan jalan kerja</b>. Skema jawapan memberi markah untuk setiap langkah, jadi semak di mana anda kehilangan markah walaupun jawapan akhir betul."
+    elif slug in LANG_ESSAY:
+        tip = f"Untuk {name}, latih <b>penulisan/karangan dengan had masa</b> dan bandingkan dengan contoh jawapan dalam skema — perhatikan format, isi dan penggunaan bahasa."
+    elif slug in HUM:
+        tip = f"Untuk {name}, ikut <b>format jawapan skema</b> (isi + huraian/contoh). Senaraikan isi yang kerap keluar dalam beberapa negeri — itulah topik yang paling penting."
+    else:
+        tip = f"Untuk {name}, kenal pasti jenis soalan yang kerap keluar dalam kertas percubaan pelbagai negeri dan fokus pada topik tersebut."
+    steps = [
+        "Mula dengan kertas percubaan <b>tahun terkini</b> — formatnya paling hampir dengan SPM sebenar.",
+        "Jawab <b>dalam masa sebenar peperiksaan</b>, tanpa melihat nota.",
+        "Semak dengan <b>skema jawapan</b> dan catat kesilapan anda ikut topik.",
+        "Ulang topik yang lemah, kemudian cuba kertas dari <b>negeri lain</b> — setiap negeri ada gaya soalan berbeza.",
+        "Akhir sekali, cuba <b>soalan sebenar SPM</b> tahun lepas untuk menguji tahap sebenar.",
+    ]
+    return ('<section class="sec guide" id="panduan"><h2>Cara ulang kaji dengan soalan percubaan %s</h2><ol>%s</ol><p>%s</p></section>'
+            % (E(name), "".join(f"<li>{x}</li>" for x in steps), tip))
+
 def subj_faq(slug):
     _s, name, en, *_ = SUBJ[slug]
     yrs = sorted({r["year"] for b in store[slug].get("percubaan", []) for r in b["rows"] if r["year"]}, reverse=True)
@@ -593,6 +649,18 @@ def subj_faq(slug):
     if store[slug].get("nota") or store[slug].get("bukuteks"):
         faqs.append((f"Ada nota ringkas dan buku teks {name} Tingkatan 4 dan 5?",
                      f"Ada. Bahagian Nota Ringkas dan Buku Teks & Jawapan memautkan nota ikut bab serta buku teks digital KSSM {name} Tingkatan 4 dan 5."))
+    t_ = trial_stats(slug)
+    if t_:
+        faqs.insert(0, (f"Berapa banyak soalan percubaan SPM {t_['y']} {name} yang ada?",
+                        f"Setakat {TODAY}, terdapat {t_['sets_y']} set soalan percubaan SPM {t_['y']} {name}"
+                        + (f" daripada {len(t_['states_y'])} negeri/institusi" if t_['states_y'] else "")
+                        + f", dan {t_['ans_y']} daripada set itu disertakan skema jawapan. Secara keseluruhan ada {t_['sets_all']} set dari tahun {t_['yrs'][-1]} hingga {t_['y']}."))
+        faqs.append((f"Bilakah soalan percubaan SPM {t_['y'] + 1} {name} akan keluar?",
+                     "Peperiksaan percubaan SPM biasanya diadakan oleh negeri dan sekolah sekitar Julai hingga September, dan kertas mula dikongsi selepas itu. "
+                     f"Halaman ini disemak setiap minggu dan kertas baharu ditambah sebaik sahaja ia dikongsi secara awam."))
+        faqs.append((f"Bagaimana cara terbaik menggunakan soalan percubaan {name}?",
+                     "Mulakan dengan kertas tahun terkini, jawab dalam masa sebenar peperiksaan, semak dengan skema jawapan, "
+                     "catat kesilapan ikut topik, kemudian cuba kertas dari negeri lain dan akhir sekali soalan sebenar SPM."))
     faqs.append(("Perlukah saya mendaftar atau membayar untuk muat turun?",
                  "Tidak. Semua pautan ialah fail yang dikongsi secara awam oleh pemilik asal. Ia dibuka terus di Google Drive atau laman asal tanpa pendaftaran."))
     return faqs, yrs, states
@@ -612,6 +680,7 @@ for s in subjects_live:
             + (f'soalan percubaan dari <strong>{yrs[-1]}</strong> hingga <strong>{yrs[0]}</strong>' if yrs else 'bahan rujukan')
             + (f' daripada {len(states)} negeri/institusi' if states else '')
             + '. Klik butang untuk buka fail terus. <span class="legend"><i class="c c-paper">Kertas</i><i class="c c-ans">Jawapan</i><i class="c c-quiz">Kuiz online</i><i class="c c-doc">Bahan</i></span></p>',
+            summary_box(slug, name, en),
             f'<nav class="tabs" aria-label="Bahagian">{tabs}</nav>',
             '<div class="filters" data-filters><input type="search" placeholder="Tapis dalam halaman ini (cth: johor, bab 3, kertas 2)" aria-label="Tapis">']
     if yrs:
@@ -634,6 +703,7 @@ for s in subjects_live:
         body.append("</section>")
         if ti_ < len(types_present) - 1: body.append(ad("incontent"))
     body.append(ad("bottom"))
+    if store[slug].get("percubaan"): body.append(study_guide(slug, name))
     body.append('<section class="sec faq"><h2>Soalan Lazim</h2>' + "".join(
         f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs) + "</section>")
     related = [x for x in subjects_live if x[3] == cat and x[0] != slug][:8]
@@ -674,6 +744,17 @@ def collection_body(y, rows_by_subj, state=None):
         if (i + 1) % 4 == 0 and i + 1 < len(rows_by_subj): body.append(ad("incontent"))
     return body
 
+def year_summary(y, rows_by_subj, st_count):
+    sets = sum(len(rs) for _, rs in rows_by_subj)
+    ans = sum(1 for _, rs in rows_by_subj for r in rs if any(l["k"] == "ans" for l in r["links"]))
+    big = sorted(rows_by_subj, key=lambda x: -len(x[1]))[:6]
+    tops = sorted(st_count.items(), key=lambda x: -x[1])[:6]
+    li = [f"<li><b>{sets}</b> set soalan percubaan SPM {y} untuk <b>{len(rows_by_subj)}</b> subjek; <b>{ans}</b> set ({round(100*ans/sets) if sets else 0}%) disertakan skema jawapan.</li>",
+          "<li><b>Subjek paling lengkap:</b> " + ", ".join(f'<a href="/spm/{s_[0]}/">{E(s_[1])}</a> ({len(rs)})' for s_, rs in big) + ".</li>"]
+    if tops: li.append("<li><b>Negeri/institusi paling banyak kertas:</b> " + ", ".join(E(x) for x, _ in tops) + ".</li>")
+    li.append(f"<li>Semua pautan dibuka terus (Google Drive), percuma tanpa daftar. Disemak setiap minggu — terakhir {TODAY}.</li>")
+    return '<section class="tldr" aria-label="Ringkasan"><h2>Ringkasan Trial SPM %s</h2><ul>%s</ul></section>' % (y, "".join(li))
+
 for y in trial_years:
     path = f"/soalan-percubaan-spm-{y}/"
     rows_by_subj = []
@@ -695,6 +776,7 @@ for y in trial_years:
     body = [f"<h1>{E(h1)}</h1>",
             f'<p class="lead">Himpunan <strong>{total}</strong> pautan soalan percubaan (trial) SPM {y} untuk <strong>{len(rows_by_subj)}</strong> subjek'
             + (f' daripada <strong>{len(st_count)}</strong> negeri/institusi' if st_count else '') + f'. Dikemas kini {TODAY}.</p>',
+            year_summary(y, rows_by_subj, st_count),
             (f'<h2 class="mini">Ikut negeri</h2><nav class="tabs wrapw" aria-label="Negeri">{stl}</nav>' if stl else ""),
             f'<h2 class="mini">Ikut subjek</h2><nav class="tabs wrapw" aria-label="Subjek">{toc}</nav>',
             '<div class="filters" data-filters><input type="search" placeholder="Tapis (cth: kimia johor, kertas 2)" aria-label="Tapis">',
@@ -893,6 +975,15 @@ llms += [f"- [Soalan Percubaan SPM {y}]({SITE_URL}/soalan-percubaan-spm-{y}/): t
 llms += [f"- [Panduan Trial SPM]({SITE_URL}/panduan-trial-spm/): apa itu trial SPM dan cara menggunakannya"]
 llms += ["", f"## Trial SPM {trial_years[0]} ikut negeri"]
 llms += [f"- [Soalan Percubaan SPM {trial_years[0]} {st}]({SITE_URL}/soalan-percubaan-spm-{trial_years[0]}/{sl}/): {n} pautan" for st, sl, n in STATE_PAGES[trial_years[0]]]
+_facts = ["", "## Fakta ringkas (dikira automatik setiap minggu)"]
+for _y in trial_years[:3]:
+    _rs = [r for s_ in subjects_live for b in store[s_[0]].get("percubaan", []) for r in b["rows"] if r["year"] == _y]
+    if _rs:
+        _a = sum(1 for r in _rs if any(l["k"] == "ans" for l in r["links"]))
+        _subj = len({s_[0] for s_ in subjects_live for b in store[s_[0]].get("percubaan", []) for r in b["rows"] if r["year"] == _y})
+        _facts.append(f"- Trial SPM {_y}: {len(_rs)} set soalan percubaan untuk {_subj} subjek; {_a} set ada skema jawapan. Halaman: {SITE_URL}/soalan-percubaan-spm-{_y}/")
+_facts.append(f"- Dikemas kini setiap minggu; terakhir {TODAY}. Semua fail dibuka terus di Google Drive, percuma tanpa pendaftaran.")
+llms += _facts
 llms += ["", "## Subjek"]
 for s in subjects_live:
     yrs = sorted({r["year"] for b in store[s[0]].get("percubaan", []) for r in b["rows"] if r["year"]})
