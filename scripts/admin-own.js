@@ -8,7 +8,7 @@
   var newId = function () { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); };
 
   function state(t, cls) { $("own-state").innerHTML = '<span class="' + (cls || "muted") + '">' + t + "</span>"; }
-  function dirty() { DIRTY = true; $("own-save").disabled = !OK; $("own-save").textContent = "Simpan & terbitkan •"; }
+  function dirty() { DIRTY = true; $("own-save").disabled = !OK; $("own-save").textContent = "Simpan & terbitkan •"; state("Belum disimpan — tekan <b>Simpan &amp; terbitkan</b>", "err"); }
   function api(opt) {
     return fetch("../admin/api/custom", Object.assign({ credentials: "same-origin", cache: "no-store" }, opt || {})).then(function (r) {
       var ct = r.headers.get("content-type") || "";
@@ -78,13 +78,16 @@
     }
     dirty();
   });
-  $("own-list").addEventListener("change", function (e) { if (e.target.tagName === "SELECT") draw(); });
+  $("own-list").addEventListener("change", function (e) {
+    if (e.target.tagName === "SELECT") draw();
+    if (e.target.dataset.f === "on") save();   // hide / show takes effect at once
+  });
   $("own-list").addEventListener("click", function (e) {
     var c = e.target.closest(".own"); if (!c || e.target.tagName !== "BUTTON") return;
     var i = +c.dataset.i, r = ROWS[i];
     if (e.target.hasAttribute("data-del")) {
       if (!confirm("Padam " + subjName(r.s) + " " + (r.y || "") + " " + (r.label || "") + "?")) return;
-      ROWS.splice(i, 1);
+      ROWS.splice(i, 1); dirty(); draw(); save(); return;   // delete takes effect at once
     } else if (e.target.hasAttribute("data-rmlink")) {
       r.links.splice(+e.target.closest(".own-l").dataset.j, 1);
     } else if (e.target.hasAttribute("data-q")) {
@@ -102,7 +105,8 @@
   $("own-fsub").addEventListener("change", draw);
   $("own-fq").addEventListener("input", draw);
 
-  $("own-save").addEventListener("click", function () {
+  $("own-save").addEventListener("click", function () { save(); });
+  function save() {
     var clean = [], err = "", badId = null;
     // Blank cards (no subject and no link filled in) are dropped quietly — e.g. "+ Tambah kertas" clicked twice.
     ROWS = ROWS.filter(function (r) { return r.s || r.links.some(function (l) { return l.u; }); });
@@ -126,7 +130,7 @@
       ROWS = j.rows; DIRTY = false; $("own-save").textContent = "Simpan & terbitkan"; draw();
       state("✓ Disimpan. Kertas muncul di halaman subjek dalam ~1 minit.", "ok");
     }).catch(function (e) { state("Gagal simpan: " + esc(e.message), "err"); $("own-save").disabled = false; });
-  });
+  }
 
   window.ownLoad = function () {
     if (ROWS || loading) return; loading = true; state("Memuatkan…");

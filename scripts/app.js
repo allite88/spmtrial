@@ -66,13 +66,16 @@ QZP.then(applyAllite);
   var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
   var kind=function(t){t=(t||"").toLowerCase();return /^(jawapan|skema|answer|marking)/.test(t)?"ans":/^(kertas|paper|soalan)/.test(t)?"paper":"doc"};
   var TN={percubaan:"Soalan Percubaan",sebenar:"Soalan Sebenar SPM",amali:"Amali"};
-  fetch((window.BASE||"")+"/custom-rows.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():[]}).then(function(list){
-    var added=0;
+  fetch((window.BASE||"")+"/custom-rows.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(list){if(!Array.isArray(list))return;
+    var added=0,live={};
+    (list||[]).forEach(function(c){if(c.on!==false)live[c.id]=1});
+    // own papers baked in at the last build but since deleted / switched off in admin: hide them now
+    [].forEach.call(document.querySelectorAll('.row[data-own]'),function(r){if(!live[r.id.slice(2)]){var y=r.closest("details.yr");r.remove();if(y&&!y.querySelector(".row"))y.remove()}});
     (list||[]).forEach(function(c){
       if(c.on===false||c.s!==slug||document.getElementById("r-"+c.id))return;
       var sec=document.getElementById(c.t);if(!sec)return;
       var chips=(c.links||[]).map(function(l){return '<a class="c c-'+kind(l.t)+'" href="'+esc(l.u)+'" target="_blank" rel="noopener nofollow">'+esc(l.t)+'</a>'}).join("");
-      var html='<div class="row" id="r-'+esc(c.id)+'" data-y="'+(c.y||"")+'" data-s="'+esc(c.st||"")+'"><div class="rl">'+esc(c.label||c.st||"Kertas")+'</div><div class="rc">'+chips+'</div></div>';
+      var html='<div class="row" data-own="1" id="r-'+esc(c.id)+'" data-y="'+(c.y||"")+'" data-s="'+esc(c.st||"")+'"><div class="rl">'+esc(c.label||c.st||"Kertas")+'</div><div class="rc">'+chips+'</div></div>';
       var box=null;
       if(c.y){
         box=sec.querySelector('details.yr[data-year="'+c.y+'"] .rows');

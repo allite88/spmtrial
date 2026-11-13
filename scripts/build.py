@@ -560,7 +560,7 @@ def row_html(r, subj, year_ctx=None, show_label=None):
     label = show_label if show_label is not None else (r["label"] or r["ctx"] or r["h3"] or r["h2"])
     label = label.strip(" :")
     disp = strip_label(label, subj, year_ctx) if year_ctx else label
-    attrs = ' data-y="%s" data-s="%s"' % (r["year"] or "", E(r["state"] or ""))
+    attrs = ' data-y="%s" data-s="%s"' % (r["year"] or "", E(r["state"] or "")) + (' data-own="1"' if r.get("own") else "")
     lh = links_html(r)
     al = allite_links(r)
     if al:   # same line as the paper buttons: insert inside the buttons container
