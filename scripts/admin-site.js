@@ -66,6 +66,12 @@
   $("ph-wa").addEventListener("input", function () { var v = $("ph-wa").value.replace(/\D/g, ""); if (/^0/.test(v)) v = "6" + v; SITE.placeholder.wa = v; dirty(); });
   $("ph-watext").addEventListener("input", function () { SITE.placeholder.waText = $("ph-watext").value; dirty(); });
 
+  // ---- SPM community (students' group + teachers' WhatsApp)
+  [["cm-on", "on"], ["cm-year", "year"], ["cm-stutext", "stuText"], ["cm-stubtn", "stuBtn"], ["cm-stulink", "stuLink"], ["cm-tchtext", "tchText"], ["cm-tchmsg", "tchMsg"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () { SITE.community[p[1]] = $(p[0]).type === "checkbox" ? $(p[0]).checked : $(p[0]).value; dirty(); });
+  });
+  $("cm-tchwa").addEventListener("input", function () { var v = $("cm-tchwa").value.replace(/\D/g, ""); if (/^0/.test(v)) v = "6" + v; SITE.community.tchWa = v; dirty(); });
+
   // ---- sponsors
   function whereOpts(sel) {
     var o = [["all", "Semua halaman"], ["home", "Laman utama sahaja"], ["s:*", "Semua halaman subjek"], ["other", "Halaman lain (tahun / negeri / panduan)"]]
@@ -111,6 +117,9 @@
     $("sup-on").checked = !!s.on; $("sup-title").value = s.title || ""; $("sup-text").value = s.text || "";
     $("sup-link").value = s.link || ""; $("sup-note").value = s.note || ""; setSupImg(s.img);
     $("ph-on").checked = !!SITE.placeholder.on; $("ph-text").value = SITE.placeholder.text || ""; $("ph-wa").value = SITE.placeholder.wa ? SITE.placeholder.wa.replace(/^60/, "0") : ""; $("ph-watext").value = SITE.placeholder.waText || "";
+    var cm = SITE.community;
+    $("cm-on").checked = !!cm.on; $("cm-year").value = cm.year || ""; $("cm-stutext").value = cm.stuText || ""; $("cm-stubtn").value = cm.stuBtn || "";
+    $("cm-stulink").value = cm.stuLink || ""; $("cm-tchtext").value = cm.tchText || ""; $("cm-tchwa").value = cm.tchWa ? cm.tchWa.replace(/^60/, "0") : ""; $("cm-tchmsg").value = cm.tchMsg || "";
     drawSponsors();
   }
   function load() {
@@ -122,11 +131,13 @@
         SITE.support = Object.assign({ on: true, title: "Sokong SPMTrial", text: "Laman ini percuma, tanpa log masuk dan tersusun kemas. Kami menjaganya bersama pelajar supaya kekal kemas dan dikemas kini. Jika laman ini membantu ulang kaji kamu, imbas kod QR untuk sokong kos penyelenggaraan — RM1 pun sangat bermakna. Terima kasih! 🙏", img: "", link: "", note: "" }, SITE.support || {});
         SITE.placeholder = Object.assign({ on: true, text: "" }, SITE.placeholder || {});
         SITE.sponsors = SITE.sponsors || [];
+        SITE.community = Object.assign({ on: false, year: new Date().getFullYear() + 1, stuText: "", stuBtn: "", stuLink: "", tchText: "", tchWa: "", tchMsg: "" }, SITE.community || {});
         fill(); state("✓ Log masuk sebagai " + esc(j.user) + " — boleh simpan", "ok"); $("site-save").disabled = true;
       }).catch(function (e) { state("Tidak boleh muat: " + esc(e.message), "err"); });
   }
   $("site-save").addEventListener("click", function () {
     var bad = SITE.sponsors.filter(function (s) { return s.url && !/^https?:\/\//.test(s.url); });
+    if (SITE.community.stuLink && !/^https?:\/\//.test(SITE.community.stuLink)) { state("Pautan kumpulan pelajar mesti bermula dengan https://", "err"); return; }
     if (bad.length || (SITE.support.link && !/^https?:\/\//.test(SITE.support.link))) { state("Pautan mesti bermula dengan https://", "err"); return; }
     if (SITE.support.on && !SITE.support.img) { if (!confirm("Kotak sokongan aktif tetapi tiada gambar QR — ia tidak akan dipaparkan. Simpan juga?")) return; }
     $("site-save").disabled = true; state("Menyimpan…");

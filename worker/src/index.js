@@ -26,6 +26,11 @@ function cleanSite(c) {
     placeholder: { on: !!(c.placeholder || {}).on, text: str((c.placeholder || {}).text, 200), wa: str((c.placeholder || {}).wa, 20).replace(/\D/g, ""), waText: str((c.placeholder || {}).waText, 300) },
     sponsors: [],
   };
+  const cm = c.community || {};
+  out.community = { on: !!cm.on, year: Math.min(2100, Math.max(2000, parseInt(cm.year, 10) || new Date().getFullYear() + 1)),
+    stuText: str(cm.stuText, 200), stuBtn: str(cm.stuBtn, 60), stuLink: url(cm.stuLink),
+    tchText: str(cm.tchText, 200), tchWa: str(cm.tchWa, 20).replace(/\D/g, ""), tchMsg: str(cm.tchMsg, 400) };
+  if (out.community.stuLink === null) throw new Error("Pautan kumpulan pelajar tidak sah");
   if (out.support.img === null || out.support.link === null) throw new Error("Pautan sokongan tidak sah");
   for (const sp of (Array.isArray(c.sponsors) ? c.sponsors : []).slice(0, 100)) {
     const o = { id: str(sp.id, 40) || Math.random().toString(36).slice(2, 10), on: !!sp.on, name: str(sp.name, 120), img: url(sp.img), url: url(sp.url), where: str(sp.where, 80) || "all" };

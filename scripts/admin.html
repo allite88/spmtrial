@@ -69,6 +69,20 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
     <div class="muted" style="clear:both">Semua perubahan di sini terus muncul di <b>setiap halaman</b> laman (dalam ~1 minit). Tidak perlu bina semula laman.</div></div>
 
   <div class="box">
+    <h2>🎓 Komuniti SPM (pelajar &amp; guru)</h2>
+    <p class="muted">Jalur kecil di bawah ruang iklan pada setiap halaman: butang untuk calon SPM sertai kumpulan, dan butang WhatsApp untuk guru kongsi kertas percubaan. Tukar tahun setiap tahun (cth. 2027 → 2028).</p>
+    <label class="row1"><input type="checkbox" id="cm-on"> Paparkan di laman</label>
+    <label class="row1">Tahun SPM <input type="number" id="cm-year" min="2000" max="2100" style="width:110px"></label>
+    <label class="row1">Teks pelajar <input type="text" id="cm-stutext" maxlength="200" style="flex:1" placeholder="Calon SPM {tahun}: sertai kumpulan — dapat notis sebaik kertas percubaan keluar"></label>
+    <label class="row1">Nama butang pelajar <input type="text" id="cm-stubtn" maxlength="60" style="width:220px" placeholder="Sertai Telegram"></label>
+    <label class="row1">Pautan kumpulan pelajar <input type="url" id="cm-stulink" style="flex:1" placeholder="https://t.me/… atau https://chat.whatsapp.com/…"></label>
+    <label class="row1">Teks guru <input type="text" id="cm-tchtext" maxlength="200" style="flex:1" placeholder="Guru: kongsi kertas percubaan SPM — sertai kumpulan guru"></label>
+    <label class="row1">WhatsApp guru <input type="text" id="cm-tchwa" maxlength="20" style="width:180px" placeholder="01145339989"></label>
+    <label class="row1">Mesej pertama guru <textarea id="cm-tchmsg" rows="2" maxlength="400" style="flex:1"></textarea></label>
+    <p class="muted"><code>{tahun}</code> dalam teks diganti dengan tahun di atas. Kosongkan pautan / nombor untuk sembunyikan butang itu.</p>
+  </div>
+
+  <div class="box">
     <h2>❤️ Kotak sokongan (kod QR)</h2>
     <p class="muted">Muncul sebagai jalur di bawah menu atas + kotak besar dengan kod QR di hujung setiap halaman. Hanya dipaparkan jika ada gambar QR.</p>
     <label class="row1"><input type="checkbox" id="sup-on"> Paparkan di laman</label>

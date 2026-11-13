@@ -43,6 +43,17 @@ QZP.then(applyAllite);
         spx.className="spx on";
       }else{spx.innerHTML="";spx.className="spx"}
     }
+    // SPM community band (students' group + teachers' WhatsApp), right under the ad slot
+    var cm=c.community||{},cb=document.getElementById("cmx");
+    if(!cb&&spx){cb=document.createElement("div");cb.id="cmx";spx.parentNode.insertBefore(cb,spx.nextSibling)}
+    if(cb){
+      var yr=cm.year||"",T=function(x){return esc(String(x||"").replace(/\{tahun\}/g,yr))};
+      var tw=cm.tchWa?"https://wa.me/"+cm.tchWa+"?text="+encodeURIComponent(String(cm.tchMsg||"").replace(/\{tahun\}/g,yr)):"";
+      var parts=[];
+      if(cm.stuLink)parts.push('<div class="cmx-i"><span>🎓 '+T(cm.stuText||"Calon SPM {tahun}: sertai kumpulan — dapat notis sebaik kertas percubaan keluar")+'</span><a class="cmx-b cmx-s" href="'+esc(cm.stuLink)+'" target="_blank" rel="noopener" data-cm="pelajar">'+T(cm.stuBtn||"Sertai kumpulan")+' →</a></div>');
+      if(tw)parts.push('<div class="cmx-i"><span>👩‍🏫 '+T(cm.tchText||"Guru: kongsi kertas percubaan SPM — sertai kumpulan guru")+'</span><a class="cmx-b cmx-t" href="'+esc(tw)+'" target="_blank" rel="noopener" data-cm="guru">💬 WhatsApp</a></div>');
+      cb.innerHTML=cm.on&&parts.length?'<div class="cmx">'+parts.join("")+'</div>':"";
+    }
   }
   var cached=null;try{cached=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
   if(cached)draw(cached);
@@ -54,7 +65,7 @@ QZP.then(applyAllite);
     if(q){e.preventDefault();var im=document.querySelector(".sup-qr img");if(!im)return;ga("sokong_qr",{});
       var d=document.createElement("div");d.className="sup-modal";d.innerHTML='<div class="sup-m-in"><img src="'+im.src+'" alt="'+esc(im.alt)+'"><p class="sup-m-t"><b>Jom bersama kekalkan sumber belajar percuma yang bersih &amp; kemas.</b><br>Let\u2019s keep this free learning resource clean &amp; tidy — together.</p><button type="button">Tutup</button></div>';
       d.addEventListener("click",function(ev){if(ev.target===d||ev.target.tagName==="BUTTON")d.remove()});document.body.appendChild(d);return}
-    var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});if(e.target.closest&&e.target.closest("[data-wa]"))ga("whatsapp_iklan",{});
+    var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});if(e.target.closest&&e.target.closest("[data-wa]"))ga("whatsapp_iklan",{});var g=e.target.closest&&e.target.closest("[data-cm]");if(g)ga("sertai_komuniti",{jenis:g.getAttribute("data-cm")});
   });
   document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=document.querySelector(".sup-modal");if(m)m.remove()}});
 })();
