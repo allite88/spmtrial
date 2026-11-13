@@ -54,6 +54,8 @@ QZP.then(applyAllite);
       if(tw)parts.push('<div class="cmx-i"><span>👩‍🏫 '+T(cm.tchText||"Guru: kongsi kertas percubaan SPM — sertai kumpulan guru")+'</span><a class="cmx-b cmx-t" href="'+esc(tw)+'" target="_blank" rel="noopener" data-cm="guru">💬 WhatsApp</a></div>');
       cb.innerHTML=cm.on&&parts.length?'<div class="cmx">'+parts.join("")+'</div>':"";
     }
+    var big=document.querySelector("[data-cm-big]");
+    if(big&&cm.on&&parts.length){big.innerHTML='<div class="cmx cmx-big">'+parts.join("")+'</div>';if(cb)cb.innerHTML=""}
   }
   var cached=null;try{cached=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
   if(cached)draw(cached);

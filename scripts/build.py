@@ -893,6 +893,60 @@ page("/cari/", f"Cari Bahan SPM — Soalan Percubaan, Nota, Buku Teks | {SITE_NA
      ad("top") + '<p class="muted" id="qinfo">Taip sekurang-kurangnya 2 huruf. Gunakan beberapa kata untuk carian lebih tepat.</p><div id="results" class="rows"></div>',
      crumbs=[("Utama", "/"), ("Cari", "/cari/")])
 
+# ---- next year's trial page, before any of its papers exist (e.g. /soalan-percubaan-spm-2027/ while the latest is 2026).
+# It sits on the same URL the real year page will use, so it starts ranking months early; once a paper for that year
+# is added (source site or admin "Kertas sendiri"), the loop above builds the full page there instead.
+NEXT_YEAR = trial_years[0] + 1
+if NEXT_YEAR not in trial_years:
+    ny, cy = NEXT_YEAR, trial_years[0]
+    path = f"/soalan-percubaan-spm-{ny}/"
+    n_cy = sum(len(r["links"]) for s_ in subjects_live for b in store[s_[0]].get("percubaan", []) for r in b["rows"] if r["year"] == cy)
+    subj_cards = "".join(f'<a class="card" href="/spm/{s_[0]}/"><b>{E(s_[1])}</b><span>Trial {cy} + nota →</span></a>'
+                         for s_ in subjects_live if any(r["year"] == cy for b in store[s_[0]].get("percubaan", []) for r in b["rows"]))
+    h1 = f"Trial SPM {ny}: Soalan Percubaan SPM {ny} + Skema Jawapan (Akan Datang)"
+    desc = (f"Soalan percubaan (trial) SPM {ny} belum dikeluarkan — biasanya keluar sekitar Ogos hingga Oktober {ny}. "
+            f"Sertai kumpulan calon SPM {ny} untuk notis terus, dan ulang kaji dengan {n_cy} pautan trial SPM {cy} sementara menunggu.")
+    faqs = [
+        (f"Bilakah soalan percubaan SPM {ny} akan keluar?",
+         f"Peperiksaan percubaan SPM biasanya diadakan oleh jabatan pendidikan negeri, MRSM, SBP dan sekolah sekitar 2–3 bulan sebelum SPM. "
+         f"Kertas dan skema jawapan trial SPM {ny} dijangka mula dikongsi sekitar Ogos hingga Oktober {ny}. Halaman ini akan dikemas kini sebaik kertas pertama keluar."),
+        (f"Siapa calon SPM {ny}?",
+         f"Calon SPM {ny} ialah pelajar Tingkatan 4 pada tahun {ny - 1} yang akan berada di Tingkatan 5 pada tahun {ny}. Tarikh rasmi peperiksaan diumumkan oleh Lembaga Peperiksaan, KPM."),
+        (f"Apa patut saya buat sekarang sebelum trial SPM {ny} keluar?",
+         f"Gunakan soalan percubaan SPM {cy} dan soalan sebenar SPM tahun lepas — format kertas hampir sama. Mulakan dengan topik Tingkatan 4 yang sudah dipelajari, dan semak jawapan dengan skema."),
+        (f"Bagaimana mahu dapat notis apabila trial SPM {ny} keluar?",
+         f"Sertai kumpulan calon SPM {ny} di halaman ini. Kami hantar notis sebaik kertas percubaan baharu ditambah, ikut subjek dan negeri."),
+        (f"Saya guru — boleh saya kongsi kertas percubaan SPM {ny}?",
+         "Boleh. Tekan butang WhatsApp untuk guru di halaman ini dan nyatakan nama sekolah serta subjek anda. Kertas yang dikongsi akan disusun ikut subjek dan negeri untuk manfaat semua calon."),
+        ("Perlukah saya mendaftar atau membayar?", "Tidak. Semua pautan percuma dan boleh dibuka terus tanpa log masuk."),
+    ]
+    body = [f"<h1>{E(h1)}</h1>",
+            f'<p class="lead">Soalan percubaan (trial) SPM {ny} <strong>belum dikeluarkan</strong>. Biasanya kertas trial dan skema jawapan mula dikongsi sekitar <strong>Ogos – Oktober {ny}</strong>. '
+            f'Halaman ini akan dikemas kini sebaik kertas pertama keluar — semua subjek, ikut negeri.</p>',
+            f'<section class="tldr"><h2>Ringkasan: Trial SPM {ny}</h2><ul>'
+            f'<li><b>Status:</b> belum keluar (dikemas kini {TODAY}).</li>'
+            f'<li><b>Dijangka:</b> Ogos – Oktober {ny}, kira-kira 2–3 bulan sebelum SPM {ny}.</li>'
+            f'<li><b>Calon SPM {ny}:</b> pelajar Tingkatan 4 tahun {ny - 1}.</li>'
+            f'<li><b>Sementara menunggu:</b> {n_cy} pautan <a href="/soalan-percubaan-spm-{cy}/">trial SPM {cy}</a> + skema jawapan, dan <a href="/soalan-sebenar-spm/">soalan sebenar SPM</a>.</li></ul></section>',
+            f'<section class="sec cm-big" id="sertai"><h2>Dapatkan notis trial SPM {ny}</h2><div data-cm-big>'
+            f'<p>🎓 <b>Calon SPM {ny}:</b> sertai kumpulan kami — kami beritahu sebaik kertas percubaan SPM {ny} keluar.</p>'
+            f'<p>👩‍🏫 <b>Guru:</b> kongsi kertas percubaan SPM dengan calon seluruh Malaysia — sertai kumpulan guru melalui WhatsApp.</p></div></section>',
+            f'<section class="sec"><h2>Jangkaan masa trial SPM {ny}</h2><div class="src">'
+            + "".join(f'<div class="row"><div class="rl">{E(a)}</div><div class="rc">{E(b)}</div></div>' for a, b in [
+                (f"Jan – Jun {ny}", f"Pembelajaran Tingkatan 5. Ulang kaji dengan trial SPM {cy} dan soalan sebenar SPM."),
+                (f"Jul – Sep {ny}", "Peperiksaan percubaan negeri, MRSM, SBP dan sekolah diadakan."),
+                (f"Ogos – Okt {ny}", f"Kertas soalan dan skema jawapan trial SPM {ny} mula dikongsi — ditambah ke halaman ini setiap minggu."),
+                ("Selepas itu", f"Peperiksaan SPM {ny} (tarikh rasmi oleh Lembaga Peperiksaan, KPM)."),
+            ]) + "</div></section>",
+            f'<section class="sec"><h2>Ulang kaji sekarang: trial SPM {cy} ikut subjek</h2><div class="grid sm">{subj_cards}</div></section>',
+            '<section class="sec faq"><h2>Soalan Lazim</h2>' + "".join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs) + "</section>"]
+    page(path, f"Trial SPM {ny} — Soalan Percubaan SPM {ny} + Skema Jawapan (Bila Keluar?) | {SITE_NAME}", desc, "\n".join(body),
+         crumbs=[("Utama", "/"), (f"Trial SPM {ny}", path)],
+         lds=[{"@context": "https://schema.org", "@type": "WebPage", "name": h1, "description": desc, "url": SITE_URL + path, "inLanguage": "ms-MY", "dateModified": TODAY}, faq_ld(faqs)],
+         keywords=f"trial spm {ny}, soalan percubaan spm {ny}, skema jawapan percubaan spm {ny}, bila trial spm {ny} keluar, spm {ny}")
+else:
+    NEXT_YEAR = None
+
 # ---- home
 cards = []
 for cat in CATEGORIES:
@@ -924,7 +978,7 @@ body = f"""
 <section class="sec"><h2>Trial SPM {trial_years[0]} ikut negeri</h2><nav class="tabs wrapw">{''.join(f'<a href="/soalan-percubaan-spm-{trial_years[0]}/{sl}/">{E(st)} <em>{n}</em></a>' for st, sl, n in STATE_PAGES[trial_years[0]])}</nav></section>
 <section id="subjek" class="sec"><h2>Pilih subjek</h2>{''.join(cards)}</section>
 {ad("incontent")}
-<section class="sec"><h2>Soalan percubaan ikut tahun</h2><div class="grid sm">{''.join(f'<a class="card" href="/soalan-percubaan-spm-{y}/"><b>Trial SPM {y}</b><span>Semua subjek</span></a>' for y in trial_years)}</div></section>
+<section class="sec"><h2>Soalan percubaan ikut tahun</h2><div class="grid sm">{(f'<a class="card" href="/soalan-percubaan-spm-{NEXT_YEAR}/"><b>Trial SPM {NEXT_YEAR}</b><span>Akan datang — dapatkan notis →</span></a>' if NEXT_YEAR else '')}{''.join(f'<a class="card" href="/soalan-percubaan-spm-{y}/"><b>Trial SPM {y}</b><span>Semua subjek</span></a>' for y in trial_years)}</div></section>
 <section class="sec"><h2>Panduan</h2><div class="grid sm"><a class="card" href="/panduan-trial-spm/"><b>Cara guna soalan trial SPM</b><span>Panduan lengkap →</span></a></div></section>
 <section class="sec"><h2>Info penting SPM</h2><div class="src">{''.join(
     '<div class="row"><div class="rl">%s</div><div class="rc">%s<a class="c c-doc" href="%s" target="_blank" rel="noopener">Halaman asal</a></div></div>' % (
@@ -1009,6 +1063,7 @@ open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nDisa
 llms = [f"# {SITE_NAME}", "", f"> {SITE_TAGLINE}. Direktori percuma {TOTAL} pautan bahan SPM (Sijil Pelajaran Malaysia) yang dikongsi secara awam: soalan percubaan (trial) {trial_years[-1]}–{trial_years[0]} dengan skema jawapan ikut negeri, soalan sebenar SPM, nota ringkas, latihan dan buku teks KSSM Tingkatan 4 & 5.", "",
         "## Halaman utama", f"- [Soalan Sebenar SPM]({SITE_URL}/soalan-sebenar-spm/): kertas peperiksaan sebenar SPM tahun lepas, semua subjek"]
 llms += [f"- [Soalan Percubaan SPM {y}]({SITE_URL}/soalan-percubaan-spm-{y}/): trial SPM {y} + skema jawapan, semua subjek" for y in trial_years]
+llms += ([f"- [Trial SPM {NEXT_YEAR}]({SITE_URL}/soalan-percubaan-spm-{NEXT_YEAR}/): belum keluar; dijangka Ogos–Oktober {NEXT_YEAR}; sertai kumpulan untuk notis"] if NEXT_YEAR else [])
 llms += [f"- [Panduan Trial SPM]({SITE_URL}/panduan-trial-spm/): apa itu trial SPM dan cara menggunakannya"]
 llms += ["", f"## Trial SPM {trial_years[0]} ikut negeri"]
 llms += [f"- [Soalan Percubaan SPM {trial_years[0]} {st}]({SITE_URL}/soalan-percubaan-spm-{trial_years[0]}/{sl}/): {n} pautan" for st, sl, n in STATE_PAGES[trial_years[0]]]
