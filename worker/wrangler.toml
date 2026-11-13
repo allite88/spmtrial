@@ -9,6 +9,8 @@ routes = [
   { pattern = "www.spmtrial.com/quiz-links.json*", zone_name = "spmtrial.com" },
   { pattern = "spmtrial.com/site-config.json*", zone_name = "spmtrial.com" },
   { pattern = "www.spmtrial.com/site-config.json*", zone_name = "spmtrial.com" },
+  { pattern = "spmtrial.com/custom-rows.json*", zone_name = "spmtrial.com" },
+  { pattern = "www.spmtrial.com/custom-rows.json*", zone_name = "spmtrial.com" },
   { pattern = "spmtrial.com/media/*", zone_name = "spmtrial.com" },
   { pattern = "www.spmtrial.com/media/*", zone_name = "spmtrial.com" },
   { pattern = "spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },

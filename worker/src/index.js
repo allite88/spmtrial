@@ -35,6 +35,27 @@ function cleanSite(c) {
   return out;
 }
 
+const CUSTOM_KEY = "custom";
+const CUSTOM_TYPES = ["percubaan", "sebenar", "nota", "latihan", "bukuteks", "karangan", "lisan", "amali", "teknik", "lain"];
+function cleanCustom(list) {
+  if (!Array.isArray(list)) throw new Error("Data tidak sah");
+  if (list.length > 3000) throw new Error("Terlalu banyak baris (maks 3000)");
+  const str = (v, n) => String(v == null ? "" : v).trim().slice(0, n);
+  return list.map((r, i) => {
+    const id = str(r.id, 20);
+    if (!/^c[0-9a-z]{4,18}$/.test(id)) throw new Error("ID baris tidak sah (#" + (i + 1) + ")");
+    const s = str(r.s, 40), t = str(r.t, 20);
+    if (!/^[a-z0-9-]{2,40}$/.test(s)) throw new Error("Pilih subjek (#" + (i + 1) + ")");
+    if (!CUSTOM_TYPES.includes(t)) throw new Error("Jenis tidak sah (#" + (i + 1) + ")");
+    const y = r.y === "" || r.y == null ? null : parseInt(r.y, 10);
+    if (y !== null && !(y >= 2000 && y <= 2100)) throw new Error("Tahun tidak sah (#" + (i + 1) + ")");
+    const links = (Array.isArray(r.links) ? r.links : []).slice(0, 12).map((l) => ({ t: str(l.t, 60) || "Fail", u: str(l.u, 2000) })).filter((l) => l.u);
+    for (const l of links) if (!okUrl(l.u)) throw new Error("Pautan tidak sah: " + l.u.slice(0, 60));
+    if (!links.length) throw new Error("Tiada pautan fail (#" + (i + 1) + ")");
+    return { id, on: r.on !== false, s, t, y, st: str(r.st, 60), label: str(r.label, 120), links, at: str(r.at, 30) || new Date().toISOString() };
+  });
+}
+
 async function load(env) {
   return (await env.QUIZ.get(KEY, "json")) || {};
 }
@@ -57,6 +78,29 @@ export default {
         "cache-control": "public, max-age=60",
         "access-control-allow-origin": "*",
       });
+    }
+
+    if (path === "/custom-rows.json" && req.method === "GET") {
+      return json((await env.QUIZ.get(CUSTOM_KEY, "json")) || [], 200, {
+        "cache-control": "public, max-age=60",
+        "access-control-allow-origin": "*",
+      });
+    }
+
+    if (path === "/admin/api/custom") {
+      const who = (req.headers.get("cf-access-authenticated-user-email") || "").toLowerCase();
+      const allowed = (env.ADMIN_EMAILS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+      if (!who || !allowed.includes(who)) return json({ error: "Tidak dibenarkan" }, 403);
+      if (req.method === "GET") return json({ rows: (await env.QUIZ.get(CUSTOM_KEY, "json")) || [], user: who }, 200, { "cache-control": "no-store" });
+      if (req.method === "POST") {
+        let rows;
+        try { rows = cleanCustom((await req.json()).rows); } catch (e) { return json({ error: e.message || "JSON tidak sah" }, 400); }
+        const old = await env.QUIZ.get(CUSTOM_KEY);
+        if (old) await env.QUIZ.put("backup-custom:" + new Date().toISOString(), old, { expirationTtl: 31536000 });
+        await env.QUIZ.put(CUSTOM_KEY, JSON.stringify(rows));
+        return json({ ok: true, rows });
+      }
+      return json({ error: "Kaedah tidak disokong" }, 405);
     }
 
     if (path.startsWith("/media/") && req.method === "GET") {
@@ -110,7 +154,7 @@ export default {
         const links = await load(env);
         let n = 0;
         for (const [id, v] of Object.entries(changes)) {
-          if (!/^[0-9a-f]{10}(-\d+)?$/.test(id) || !v || typeof v !== "object") continue;
+          if (!/^([0-9a-f]{10}(-\d+)?|c[0-9a-z]{4,18})$/.test(id) || !v || typeof v !== "object") continue;
           const cur = { ...(links[id] || {}) };
           for (const k of ["k1", "k1b", "k2"]) {
             if (!(k in v)) continue;

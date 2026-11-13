@@ -258,6 +258,42 @@ for g in hub["groups"]:
     typ = classify_group(" ".join([g["ctx"], g["label"]] + [l["t"] for l in g["links"][:1]]), "lain")
     add_rows(s, typ, "https://www.bumigemilang.com/soalan-percubaan-spm/", hub["title"], [g])
 
+# 4) the owner's own papers (added in /admin → "Kertas sendiri", stored in Cloudflare KV). Shown first in their year.
+def own_kind(t):
+    t = t.lower()
+    if re.match(r"(jawapan|skema|answer|marking)", t): return "ans"
+    if re.match(r"(kertas|paper|soalan)", t): return "paper"
+    return "doc"
+
+def load_custom():
+    cache = os.path.join(ROOT, "data", "custom-rows.json")
+    try:
+        import urllib.request
+        req = urllib.request.Request(CFG.get("site_url", "").rstrip("/") + "/custom-rows.json",
+                                     headers={"User-Agent": "Mozilla/5.0 (compatible; spmtrial-build/1.0; +https://spmtrial.com)", "Cache-Control": "no-cache"})
+        rows = json.loads(urllib.request.urlopen(req, timeout=20).read().decode("utf-8"))
+        json.dump(rows, open(cache, "w", encoding="utf-8"), ensure_ascii=False)
+        return rows
+    except Exception as e:
+        print("  own papers: could not fetch (%s) — using cache" % e)
+        return json.load(open(cache, encoding="utf-8")) if os.path.exists(cache) else []
+
+OWN = json.load(open(os.environ["OWN_FILE"], encoding="utf-8")) if os.environ.get("OWN_FILE") else (load_custom() if CFG.get("site_url") and not os.environ.get("NO_CUSTOM") else [])  # OWN_FILE: local testing
+for c in OWN:
+    if not c.get("on", True) or c.get("s") not in SUBJ or c.get("t") not in TYPES: continue
+    links = []
+    for l in c.get("links", []):
+        u = clean_url(l["u"])
+        if u in seen[c["s"]]: continue
+        seen[c["s"]].add(u)
+        links.append({"t": l["t"], "u": u, "k": own_kind(l["t"])})
+    if not links: continue
+    st = c.get("st") or (find_state(c.get("label", "")) if c["t"] in ("percubaan", "amali") else None)
+    row = {"rid": c["id"], "src": CFG.get("site_url", "") + "/", "typ": c["t"], "subj": c["s"], "h2": "", "h3": "", "ctx": "",
+           "label": c.get("label") or st or "Kertas", "year": c.get("y"), "state": st or None, "links": links, "own": True}
+    store[c["s"]][c["t"]].insert(0, {"src": row["src"], "title": "Koleksi " + CFG.get("site_name", "SPMTrial"), "rows": [row]})
+print("own papers:", sum(1 for c in OWN if c.get("on", True)))
+
 # ---------------------------------------------------------------- stats
 def count_links(subj, typ=None):
     ts = [typ] if typ else store[subj].keys()
@@ -926,11 +962,12 @@ json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live
 json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
 _ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
 _av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), "rb").read()).hexdigest()[:8]
-_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('"rows.json"', '"rows.json"')
+_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('"rows.json"', '"rows.json"')
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), os.path.join(OUT, "admin", "admin-site.js"))
+shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), os.path.join(OUT, "admin", "admin-own.js"))
 print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["id"] in QUIZ))
 
 # ---- static content pages

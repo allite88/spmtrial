@@ -3,13 +3,14 @@
 var QZ={},QZP=fetch((window.BASE||"")+"/quiz-links.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}}).then(function(j){QZ=j||{};return QZ});
 function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push([q.k1b?"Allite K1 Bhg A Quiz":"Allite K1 Online Quiz",q.k1,"allite"]);if(q.k1b)o.push(["Allite K1 Bhg B Quiz",q.k1b,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);return o}
 window.alliteFor=alliteFor;
-QZP.then(function(){
+function applyAllite(){
   Object.keys(QZ).forEach(function(id){
     var row=document.getElementById("r-"+id); if(!row)return;
     var rc=row.querySelector(".rc"); if(!rc||rc.querySelector(".c-allite"))return;
     alliteFor(id).forEach(function(l){var a=document.createElement("a");a.className="c c-allite";a.href=l[1];a.target="_blank";a.rel="noopener";a.textContent=l[0];rc.appendChild(a)});
   });
-});
+}
+QZP.then(applyAllite);
 // ---- support QR + sponsor slot (edited in /admin, served by the Cloudflare worker as /site-config.json)
 (function(){
   var B=window.BASE||"",K="spmtrial-site";
@@ -56,6 +57,40 @@ QZP.then(function(){
     var s=e.target.closest&&e.target.closest("[data-spx]");if(s)ga("klik_iklan",{penaja:s.getAttribute("data-spx")});if(e.target.closest&&e.target.closest("[data-wa]"))ga("whatsapp_iklan",{});
   });
   document.addEventListener("keydown",function(e){if(e.key==="Escape"){var m=document.querySelector(".sup-modal");if(m)m.remove()}});
+})();
+
+// ---- owner's own papers (added in /admin → "Kertas sendiri"); shown at once, baked into the page at the next build
+(function(){
+  var pg=document.body.getAttribute("data-pg")||"",slug=pg.indexOf("s:")===0?pg.slice(2):"";
+  if(!slug)return;
+  var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+  var kind=function(t){t=(t||"").toLowerCase();return /^(jawapan|skema|answer|marking)/.test(t)?"ans":/^(kertas|paper|soalan)/.test(t)?"paper":"doc"};
+  var TN={percubaan:"Soalan Percubaan",sebenar:"Soalan Sebenar SPM",amali:"Amali"};
+  fetch((window.BASE||"")+"/custom-rows.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():[]}).then(function(list){
+    var added=0;
+    (list||[]).forEach(function(c){
+      if(c.on===false||c.s!==slug||document.getElementById("r-"+c.id))return;
+      var sec=document.getElementById(c.t);if(!sec)return;
+      var chips=(c.links||[]).map(function(l){return '<a class="c c-'+kind(l.t)+'" href="'+esc(l.u)+'" target="_blank" rel="noopener nofollow">'+esc(l.t)+'</a>'}).join("");
+      var html='<div class="row" id="r-'+esc(c.id)+'" data-y="'+(c.y||"")+'" data-s="'+esc(c.st||"")+'"><div class="rl">'+esc(c.label||c.st||"Kertas")+'</div><div class="rc">'+chips+'</div></div>';
+      var box=null;
+      if(c.y){
+        box=sec.querySelector('details.yr[data-year="'+c.y+'"] .rows');
+        if(!box){
+          var d=document.createElement("details");d.className="yr";d.setAttribute("data-year",c.y);d.open=true;
+          d.innerHTML='<summary><span>'+(TN[c.t]||"")+' SPM '+c.y+'</span><em>baharu</em></summary><div class="rows"></div>';
+          var first=sec.querySelector("details.yr");
+          var newer=[].slice.call(sec.querySelectorAll("details.yr")).filter(function(x){return +x.getAttribute("data-year")>c.y});
+          var after=newer.length?newer[newer.length-1]:null;
+          if(after)after.parentNode.insertBefore(d,after.nextSibling);else if(first)first.parentNode.insertBefore(d,first);else sec.appendChild(d);
+          box=d.querySelector(".rows");
+        }
+      }
+      if(!box)box=sec.querySelector(".rows")||sec;
+      box.insertAdjacentHTML("afterbegin",html);added++;
+    });
+    if(added)QZP.then(applyAllite);
+  }).catch(function(){});
 })();
 var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")};
 // ---- in-page filters

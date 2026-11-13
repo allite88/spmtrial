@@ -4,16 +4,17 @@
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var SITE = null, SUBJ = [], DIRTY = false, OK = false;
 
-  // ---- tabs
+  // ---- tabs: quiz | iklan | sendiri
   function tab(name) {
-    var iklan = name === "iklan";
-    $("site-panel").hidden = !iklan; $("quiz-panel").hidden = iklan;
-    ["counts", "status", "save"].forEach(function (id) { $(id).style.display = iklan ? "none" : ""; });
-    [].forEach.call(document.querySelectorAll(".tabs a"), function (a) { a.classList.toggle("on", a.dataset.tab === (iklan ? "iklan" : "quiz")); });
-    if (iklan && !SITE) load();
+    if (["iklan", "sendiri"].indexOf(name) < 0) name = "quiz";
+    $("site-panel").hidden = name !== "iklan"; $("quiz-panel").hidden = name !== "quiz"; $("own-panel").hidden = name !== "sendiri";
+    ["counts", "status", "save"].forEach(function (id) { $(id).style.display = name === "quiz" ? "" : "none"; });
+    [].forEach.call(document.querySelectorAll(".tabs a"), function (a) { a.classList.toggle("on", a.dataset.tab === name); });
+    if (name === "iklan" && !SITE) load();
+    if (name === "sendiri" && window.ownLoad) window.ownLoad();
   }
   window.addEventListener("hashchange", function () { tab(location.hash.slice(1)); });
-  tab(location.hash.slice(1));
+  setTimeout(function () { tab(location.hash.slice(1)); }, 0);
 
   function state(t, cls) { $("site-state").innerHTML = '<span class="' + (cls || "muted") + '">' + t + "</span>"; }
   function dirty() { DIRTY = true; $("site-save").disabled = !OK; $("site-save").textContent = "Simpan & terbitkan •"; }

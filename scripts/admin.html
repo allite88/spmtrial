@@ -43,13 +43,21 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
 .spc .imgbox{flex-basis:340px}.spc .imgbox img{max-width:340px}
 .spc-top{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .del{color:var(--err)}
+.own{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--card)}.own.off{opacity:.6}.own.new{border-color:var(--brand)}
+.own-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:6px 0}
+.own-g label,.own-l label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+.own input,.own select{padding:6px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;color:var(--ink);background:#fff}
+.own-l{display:grid;grid-template-columns:170px 1fr auto;gap:6px;align-items:end;margin:4px 0}
+.own-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.own-q{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.own-q button{padding:4px 9px;font-size:12.5px}
+@media (max-width:640px){.own-l{grid-template-columns:1fr}}
 @media (max-width:800px){th:nth-child(4),td:nth-child(4){display:none}}
 </style>
 </head>
 <body>
 <header>
   <h1>⚙️ Admin __SITE_NAME__</h1>
-  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a></nav>
+  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a><a href="#sendiri" data-tab="sendiri">➕ Kertas sendiri</a></nav>
   <span class="muted" id="counts"></span>
   <span class="sp"></span>
   <span id="status" class="muted"></span>
@@ -89,6 +97,21 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
     <label class="row1">Mesej pertama WhatsApp <input type="text" id="ph-watext" maxlength="300" style="flex:1" placeholder="Hello, I would like to advertise on the SPMTrial website. I am "></label>
   </div>
 </div>
+<div class="wrap" id="own-panel" hidden>
+  <div class="box"><span id="own-state" class="muted">Memuatkan…</span>
+    <button class="pri" id="own-save" style="float:right" disabled>Simpan &amp; terbitkan</button>
+    <div class="muted" style="clear:both">Tambah kertas anda sendiri (cth. Trial SPM 2027) dengan pautan Google Drive anda — tidak perlu tunggu laman sumber.
+      Selepas simpan, kertas <b>terus muncul di halaman subjek</b> (~1 minit). Ia juga dimasukkan ke halaman tahun, carian &amp; Google pada binaan automatik seterusnya.<br>
+      Pastikan fail Drive dikongsi sebagai <b>"Sesiapa yang mempunyai pautan" (Anyone with the link)</b>.</div></div>
+  <div class="box filters">
+    <button class="pri" id="own-add">+ Tambah kertas</button>
+    <select id="own-fsub"><option value="">Semua subjek</option></select>
+    <input type="search" id="own-fq" placeholder="Cari dalam kertas sendiri…">
+    <span class="muted" id="own-count"></span>
+  </div>
+  <div id="own-list"></div>
+  <datalist id="own-lab"><option>Kertas 1</option><option>Kertas 2</option><option>Kertas 3</option><option>Jawapan K1</option><option>Jawapan K2</option><option>Jawapan K3</option><option>Skema Jawapan</option><option>Kertas 1 + Jawapan</option><option>Kertas 2 + Jawapan</option><option>Nota</option></datalist>
+</div>
 <div class="wrap" id="quiz-panel">
   <div class="box" id="tokbox"><span id="tokstate" class="muted">Menyemak log masuk…</span>
     <span class="muted"> — Tampal pautan Allite di kotak kanan setiap baris, kemudian tekan <b>Simpan</b>. Butang terus muncul di laman.</span></div>
@@ -114,5 +137,6 @@ window.ADMIN_CFG = __CFG__;
 </script>
 <script src="admin.js"></script>
 <script src="admin-site.js"></script>
+<script src="admin-own.js"></script>
 </body>
 </html>
