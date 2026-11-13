@@ -94,3 +94,11 @@ AD_PREVIEW=1 python3 scripts/build.py
 - **广告**：按“+ Tambah iklan” → 上传图片（建议 1200×300）→ 填点击后要去的网址 → 选显示在哪里（全部 / 主页 / 某科目）→ 保存。
 - 没有广告时，可显示“Ruang iklan”空位（点了会发邮件给你），方便大学/补习中心联系。
 - 改完约 1 分钟生效，不需要重新建站。图片存在 Cloudflare KV。
+
+## 自己的试卷（后台“➕ Kertas sendiri”）
+- 打开 https://spmtrial.com/admin/#sendiri → “+ Tambah kertas”。
+- 选科目、类型（默认 Soalan Percubaan）、年份（可以是 2027 等新年份）、州属，填显示名称。
+- 每个按钮：名称（Kertas 1 / Jawapan K1…）+ 自己 Google Drive 的分享链接（要设成“Anyone with the link”）。
+- 按 “Simpan & terbitkan”：约 1 分钟后科目页直接显示；下次自动建站（每周一，或推送代码时）会正式写进年份页、搜索和 sitemap，新的年份（例如 Trial SPM 2027 页）也会自动生成。
+- 名称以 Kertas/Soalan 开头 = 蓝色试卷按钮；以 Jawapan/Skema 开头 = 绿色答案按钮；其他 = 灰色资料按钮。
+- 之后这些行也会出现在 Allite Quiz 页，可以加 Allite K1/K2 按钮。
