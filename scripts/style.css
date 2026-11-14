@@ -77,7 +77,8 @@ h2.mini{font-size:14px;color:var(--mut);margin:14px 0 0;border:0;padding:0;text-
 /* Allite online quiz buttons */
 .c-allite{background:#fff4e6;color:#c2410c;font-weight:600}
 .c-allite:before{content:"▶ ";font-size:10px}
-@media (prefers-color-scheme:dark){.c-allite{background:#3a2412;color:#fdba74}}
+.c-step{background:#ecfdf5;color:#047857}.c-step:before{content:"✎ "}
+@media (prefers-color-scheme:dark){.c-allite{background:#3a2412;color:#fdba74}.c-step{background:#0f2e24;color:#6ee7b7}}
 
 .sup-s{background:linear-gradient(90deg,#fff1f2,#fff7ed);border-bottom:1px solid #fecdd3;font-size:14px}
 .sup-s-in{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 16px;flex-wrap:wrap}

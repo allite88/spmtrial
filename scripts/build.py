@@ -554,6 +554,9 @@ def allite_links(r):
     for k, name in (("k1", "Allite K1 Online Quiz"), ("k2", "Allite K2 Online Quiz")):
         u = (q.get(k) or "").strip()
         if u.startswith("http"): out.append({"t": name, "u": u, "k": "allite"})
+    for k, name in (("s1", "K1 Step-by-step"), ("s2", "K2 Step-by-step")):
+        u = (q.get(k) or "").strip()
+        if u.startswith("http"): out.append({"t": name, "u": u, "k": "allite c-step"})
     return out
 
 def row_html(r, subj, year_ctx=None, show_label=None):

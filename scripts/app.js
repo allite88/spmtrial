@@ -1,13 +1,14 @@
 (function(){
 // ---- Allite online quiz buttons (links managed in /admin, served by the Cloudflare worker)
 var QZ={},QZP=fetch((window.BASE||"")+"/quiz-links.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}}).then(function(j){QZ=j||{};return QZ});
-function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push([q.k1b?"Allite K1 Bhg A Quiz":"Allite K1 Online Quiz",q.k1,"allite"]);if(q.k1b)o.push(["Allite K1 Bhg B Quiz",q.k1b,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);return o}
+function alliteFor(id){var q=QZ[id]||{},o=[];if(q.k1)o.push([q.k1b?"Allite K1 Bhg A Quiz":"Allite K1 Online Quiz",q.k1,"allite"]);if(q.k1b)o.push(["Allite K1 Bhg B Quiz",q.k1b,"allite"]);if(q.k2)o.push(["Allite K2 Online Quiz",q.k2,"allite"]);if(q.s1)o.push(["K1 Step-by-step",q.s1,"allite c-step"]);if(q.s2)o.push(["K2 Step-by-step",q.s2,"allite c-step"]);return o}
 window.alliteFor=alliteFor;
 function applyAllite(){
   Object.keys(QZ).forEach(function(id){
     var row=document.getElementById("r-"+id); if(!row)return;
-    var rc=row.querySelector(".rc"); if(!rc||rc.querySelector(".c-allite"))return;
-    alliteFor(id).forEach(function(l){var a=document.createElement("a");a.className="c c-allite";a.href=l[1];a.target="_blank";a.rel="noopener";a.textContent=l[0];rc.appendChild(a)});
+    var rc=row.querySelector(".rc"); if(!rc)return;
+    var have={};[].forEach.call(rc.querySelectorAll(".c-allite"),function(a){have[a.getAttribute("href")]=1});
+    alliteFor(id).forEach(function(l){if(have[l[1]])return;var a=document.createElement("a");a.className="c c-"+l[2];a.href=l[1];a.target="_blank";a.rel="noopener";a.textContent=l[0];rc.appendChild(a)});
   });
 }
 QZP.then(applyAllite);

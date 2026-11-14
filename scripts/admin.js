@@ -24,7 +24,9 @@
     });
   }
 
-  function current(rid) { var e = EDIT[rid] || {}, q = QUIZ[rid] || {}; return { k1: e.k1 != null ? e.k1 : (q.k1 || ""), k1b: e.k1b != null ? e.k1b : (q.k1b || ""), k2: e.k2 != null ? e.k2 : (q.k2 || "") }; }
+  var QK = ["k1", "k1b", "k2", "s1", "s2"];
+  function current(rid) { var e = EDIT[rid] || {}, q = QUIZ[rid] || {}, o = {}; QK.forEach(function (k) { o[k] = e[k] != null ? e[k] : (q[k] || ""); }); return o; }
+  function anyQ(c) { return QK.some(function (k) { return c[k]; }); }
   function dirtyCount() { return Object.keys(EDIT).length; }
   function refreshSave() { var n = dirtyCount(); $("save").textContent = "Simpan (" + n + ")"; $("save").disabled = !n || !OK; }
 
@@ -34,9 +36,9 @@
     return ROWS.filter(function (r) {
       if (fs && r.s !== fs) return false; if (ft && r.t !== ft) return false;
       if (fy && String(r.y) !== fy) return false; if (fst && r.st !== fst) return false;
-      var c = current(r.id), hasQ = !!(c.k1 || c.k1b || c.k2);
+      var c = current(r.id), hasQ = anyQ(c);
       if (has && !hasQ) return false; if (no && hasQ) return false;
-      if (terms.length) { var hay = r._t + " " + norm(c.k1 + " " + c.k1b + " " + c.k2); for (var i = 0; i < terms.length; i++) if (hay.indexOf(terms[i]) < 0) return false; }
+      if (terms.length) { var hay = r._t + " " + norm(QK.map(function (k) { return c[k]; }).join(" ")); for (var i = 0; i < terms.length; i++) if (hay.indexOf(terms[i]) < 0) return false; }
       return true;
     });
   }
@@ -47,16 +49,18 @@
     $("info").textContent = list.length + " baris sepadan" + (list.length > LIMIT ? " — memaparkan " + LIMIT + " pertama, tapis lagi untuk lihat yang lain." : ".");
     $("tb").innerHTML = show.map(function (r) {
       var c = current(r.id), al = [];
-      if (c.k1) al.push([c.k1b ? "Allite K1 Bhg A Quiz" : "Allite K1 Online Quiz", c.k1, "allite"]); if (c.k1b) al.push(["Allite K1 Bhg B Quiz", c.k1b, "allite"]); if (c.k2) al.push(["Allite K2 Online Quiz", c.k2, "allite"]);
-      return '<tr data-id="' + r.id + '" class="' + (EDIT[r.id] ? "dirty " : "") + (c.k1 || c.k1b || c.k2 ? "has" : "") + '">' +
+      if (c.k1) al.push([c.k1b ? "Allite K1 Bhg A Quiz" : "Allite K1 Online Quiz", c.k1, "allite"]); if (c.k1b) al.push(["Allite K1 Bhg B Quiz", c.k1b, "allite"]); if (c.k2) al.push(["Allite K2 Online Quiz", c.k2, "allite"]); if (c.s1) al.push(["K1 Step-by-step", c.s1, "allite c-step"]); if (c.s2) al.push(["K2 Step-by-step", c.s2, "allite c-step"]);
+      return '<tr data-id="' + r.id + '" class="' + (EDIT[r.id] ? "dirty " : "") + (anyQ(c) ? "has" : "") + '">' +
         '<td class="lab"><b>' + esc(r.sn) + " · " + esc(r.y || "") + '</b>' + esc(r.l) + '<br><small>' + esc(r.tn) + (r.st ? " · " + esc(r.st) : "") + ' · <a href="' + esc(r.p) + '#r-' + r.id + '" target="_blank">lihat di laman ↗</a></small></td>' +
         "<td>" + chips(r.k) + (al.length ? "<br>" + chips(al) : "") + "</td>" +
         '<td class="q"><input type="url" data-k="k1" placeholder="Pautan Allite K1 quiz (kosong = tiada butang)" value="' + esc(c.k1) + '">' +
         '<input type="url" data-k="k1b" placeholder="K1 Bahagian B (pilihan, cth. BM)" value="' + esc(c.k1b) + '">' +
-        '<input type="url" data-k="k2" placeholder="Pautan Allite K2 quiz (kosong = tiada butang)" value="' + esc(c.k2) + '"></td>' +
+        '<input type="url" data-k="k2" placeholder="Pautan Allite K2 quiz (kosong = tiada butang)" value="' + esc(c.k2) + '">' +
+        '<input type="url" data-k="s1" placeholder="K1 Step-by-step (pilihan)" value="' + esc(c.s1) + '">' +
+        '<input type="url" data-k="s2" placeholder="K2 Step-by-step (pilihan)" value="' + esc(c.s2) + '"></td>' +
         '<td class="src"><a href="' + esc(r.src) + '" target="_blank" rel="noopener">' + esc(r.src.replace(/^https?:\/\//, "")) + "</a></td></tr>";
     }).join("");
-    var total = ROWS.length, withQ = ROWS.filter(function (r) { var c = current(r.id); return c.k1 || c.k1b || c.k2; }).length;
+    var total = ROWS.length, withQ = ROWS.filter(function (r) { var c = current(r.id); return anyQ(c); }).length;
     $("counts").innerHTML = "<span class='pill'>" + total + " baris</span><span class='pill'>" + withQ + " ada quiz</span>";
     refreshSave();
   }
@@ -66,13 +70,13 @@
     var tr = inp.closest("tr"), id = tr.dataset.id, q = QUIZ[id] || {}, v = inp.value.trim();
     EDIT[id] = EDIT[id] || {}; EDIT[id][inp.dataset.k] = v;
     var c = current(id);
-    if ((c.k1 || "") === (q.k1 || "") && (c.k1b || "") === (q.k1b || "") && (c.k2 || "") === (q.k2 || "")) delete EDIT[id];
+    if (QK.every(function (k) { return (c[k] || "") === (q[k] || ""); })) delete EDIT[id];
     tr.classList.toggle("dirty", !!EDIT[id]); refreshSave();
     inp.style.borderColor = v && !/^https?:\/\//.test(v) ? "#b91c1c" : "";
   });
 
   $("save").addEventListener("click", function () {
-    var bad = Object.keys(EDIT).filter(function (id) { var e = EDIT[id]; return [e.k1, e.k1b, e.k2].some(function (v) { return v && !/^https?:\/\//.test(v); }); });
+    var bad = Object.keys(EDIT).filter(function (id) { var e = EDIT[id]; return QK.map(function (k) { return e[k]; }).some(function (v) { return v && !/^https?:\/\//.test(v); }); });
     if (bad.length) { status("Ada pautan tidak sah (mesti bermula dengan https://)", "err"); return; }
     $("save").disabled = true; status("Menyimpan…");
     api("POST", { changes: EDIT }).then(function (j) {
@@ -88,10 +92,10 @@
 
   $("csv").addEventListener("click", function () {
     var q = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
-    var lines = [["id", "subjek", "jenis", "tahun", "negeri", "baris", "butang", "pautan", "allite_k1", "allite_k1b", "allite_k2", "sumber"].join(",")];
+    var lines = [["id", "subjek", "jenis", "tahun", "negeri", "baris", "butang", "pautan", "allite_k1", "allite_k1b", "allite_k2", "step_k1", "step_k2", "sumber"].join(",")];
     filtered().forEach(function (r) {
       var c = current(r.id);
-      r.k.forEach(function (l) { lines.push([r.id, r.sn, r.tn, r.y, r.st, r.l, l[0], l[1], c.k1, c.k1b, c.k2, r.src].map(q).join(",")); });
+      r.k.forEach(function (l) { lines.push([r.id, r.sn, r.tn, r.y, r.st, r.l, l[0], l[1], c.k1, c.k1b, c.k2, c.s1, c.s2, r.src].map(q).join(",")); });
     });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" }));
     a.download = "spmtrial-pautan.csv"; a.click();

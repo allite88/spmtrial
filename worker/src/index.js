@@ -230,7 +230,7 @@ export default {
         for (const [id, v] of Object.entries(changes)) {
           if (!/^([0-9a-f]{10}(-\d+)?|c[0-9a-z]{4,18})$/.test(id) || !v || typeof v !== "object") continue;
           const cur = { ...(links[id] || {}) };
-          for (const k of ["k1", "k1b", "k2"]) {
+          for (const k of ["k1", "k1b", "k2", "s1", "s2"]) {
             if (!(k in v)) continue;
             const val = String(v[k] || "").trim();
             if (!val) delete cur[k];
