@@ -15,6 +15,8 @@ routes = [
   { pattern = "www.spmtrial.com/media/*", zone_name = "spmtrial.com" },
   { pattern = "spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
   { pattern = "www.spmtrial.com/admin/api/*", zone_name = "spmtrial.com" },
+  { pattern = "spmtrial.com/api/*", zone_name = "spmtrial.com" },
+  { pattern = "www.spmtrial.com/api/*", zone_name = "spmtrial.com" },
 ]
 
 [vars]

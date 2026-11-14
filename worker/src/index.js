@@ -61,6 +61,31 @@ function cleanCustom(list) {
   });
 }
 
+// ---- public paper sharing: visitors submit Drive links; they only show up in /admin ("Kiriman") for the owner to check.
+const SUB_PREFIX = "sub:";
+function cleanSubmission(b) {
+  const str = (v, n) => String(v == null ? "" : v).trim().slice(0, n);
+  const y = parseInt(b.y, 10);
+  if (!(y >= 2000 && y <= 2100)) throw new Error("Pilih tahun");
+  const s = str(b.s, 40);
+  if (!/^[a-z0-9-]{2,40}$/.test(s)) throw new Error("Pilih subjek");
+  const st = str(b.st, 80);
+  if (!st) throw new Error("Isi negeri / institusi");
+  const L = [["k1", "Kertas 1"], ["k2", "Kertas 2"], ["j1", "Skema K1"], ["j2", "Skema K2"], ["lain", "Lain-lain"]];
+  const links = [];
+  for (const [k, t] of L) {
+    const u = str(b[k], 2000);
+    if (!u) continue;
+    if (!okUrl(u)) throw new Error("Pautan " + t + " mesti bermula dengan https://");
+    links.push({ k, t, u });
+  }
+  if (!links.length) throw new Error("Masukkan sekurang-kurangnya satu pautan");
+  const wa = str(b.wa, 20).replace(/\D/g, "");
+  if (wa.length < 9) throw new Error("Masukkan nombor WhatsApp yang sah");
+  return { y, s, st, t: b.t === "sebenar" ? "sebenar" : "percubaan", links, wa,
+           name: str(b.name, 80), school: str(b.school, 120), note: str(b.note, 500) };
+}
+
 async function load(env) {
   return (await env.QUIZ.get(KEY, "json")) || {};
 }
@@ -90,6 +115,50 @@ export default {
         "cache-control": "public, max-age=60",
         "access-control-allow-origin": "*",
       });
+    }
+
+    if (path === "/api/kongsi" && req.method === "POST") {
+      let b;
+      try { b = await req.json(); } catch (e) { return json({ error: "Data tidak sah" }, 400); }
+      if (b.website) return json({ ok: true });   // honeypot field: bots fill it, people never see it
+      const ip = req.headers.get("cf-connecting-ip") || "x";
+      const rk = "rl:" + ip + ":" + new Date().toISOString().slice(0, 13);
+      const n = parseInt((await env.QUIZ.get(rk)) || "0", 10);
+      if (n >= 8) return json({ error: "Terlalu banyak kiriman — cuba lagi dalam sejam" }, 429);
+      let sub;
+      try { sub = cleanSubmission(b); } catch (e) { return json({ error: e.message }, 400); }
+      const at = new Date().toISOString();
+      const id = at.replace(/[-:.TZ]/g, "") + Math.random().toString(36).slice(2, 6);
+      await env.QUIZ.put(SUB_PREFIX + id, JSON.stringify({ id, at, status: "baru", ...sub }), { expirationTtl: 60 * 60 * 24 * 400 });
+      await env.QUIZ.put(rk, String(n + 1), { expirationTtl: 3700 });
+      return json({ ok: true });
+    }
+
+    if (path === "/admin/api/kiriman") {
+      const who = (req.headers.get("cf-access-authenticated-user-email") || "").toLowerCase();
+      const allowed = (env.ADMIN_EMAILS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+      if (!who || !allowed.includes(who)) return json({ error: "Tidak dibenarkan" }, 403);
+      if (req.method === "GET") {
+        const keys = [];
+        let cursor;
+        do { const r = await env.QUIZ.list({ prefix: SUB_PREFIX, cursor }); keys.push(...r.keys); cursor = r.list_complete ? null : r.cursor; } while (cursor && keys.length < 2000);
+        const subs = (await Promise.all(keys.map((k) => env.QUIZ.get(k.name, "json")))).filter(Boolean).sort((a, b) => (a.at < b.at ? 1 : -1));
+        return json({ subs, user: who }, 200, { "cache-control": "no-store" });
+      }
+      if (req.method === "POST") {
+        let b;
+        try { b = await req.json(); } catch (e) { return json({ error: "JSON tidak sah" }, 400); }
+        const id = String(b.id || "");
+        if (!/^[0-9a-z]{10,40}$/.test(id)) return json({ error: "id tidak sah" }, 400);
+        const key = SUB_PREFIX + id;
+        if (b.action === "delete") { await env.QUIZ.delete(key); return json({ ok: true }); }
+        const cur = await env.QUIZ.get(key, "json");
+        if (!cur) return json({ error: "Tiada" }, 404);
+        if (["baru", "diterbitkan", "ditolak"].includes(b.status)) cur.status = b.status;
+        await env.QUIZ.put(key, JSON.stringify(cur), { expirationTtl: 60 * 60 * 24 * 400 });
+        return json({ ok: true, sub: cur });
+      }
+      return json({ error: "Kaedah tidak disokong" }, 405);
     }
 
     if (path === "/admin/api/custom") {

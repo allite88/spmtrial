@@ -127,19 +127,31 @@
     }
     $("own-save").disabled = true; state("Menyimpan…");
     api({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ rows: clean }) }).then(function (j) {
+      var subIds = ROWS.filter(function (r) { return r._sub; }).map(function (r) { return r._sub; });
+      if (subIds.length && window.kirimanMark) window.kirimanMark(subIds, "diterbitkan");
       ROWS = j.rows; DIRTY = false; $("own-save").textContent = "Simpan & terbitkan"; draw();
       state("✓ Disimpan. Kertas muncul di halaman subjek dalam ~1 minit.", "ok");
     }).catch(function (e) { state("Gagal simpan: " + esc(e.message), "err"); $("own-save").disabled = false; });
   }
 
+  var READY = null;
   window.ownLoad = function () {
-    if (ROWS || loading) return; loading = true; state("Memuatkan…");
-    Promise.all([api(), fetch("rows.json", { cache: "force-cache" }).then(function (r) { return r.json(); })]).then(function (a) {
+    if (READY) return READY; loading = true; state("Memuatkan…");
+    return READY = Promise.all([api(), fetch("rows.json", { cache: "force-cache" }).then(function (r) { return r.json(); })]).then(function (a) {
       ROWS = a[0].rows || []; OK = true;
       META = { subjects: a[1].subjects || [], types: a[1].types || [], states: a[1].states || [] };
       $("own-fsub").insertAdjacentHTML("beforeend", opts(META.subjects));
       draw(); state("✓ Log masuk sebagai " + esc(a[0].user) + " — boleh simpan", "ok");
-    }).catch(function (e) { state("Tidak boleh muat: " + esc(e.message), "err"); }).then(function () { loading = false; });
+    }).catch(function (e) { READY = null; state("Tidak boleh muat: " + esc(e.message), "err"); throw e; }).then(function () { loading = false; }, function (e) { loading = false; throw e; });
+  };
+  // From the "Kiriman" tab: turn a visitor's submission into a new own-paper card (owner checks, then saves).
+  window.ownAddFrom = function (sub) {
+    var names = { k1: "Kertas 1", k2: "Kertas 2", j1: "Jawapan K1", j2: "Jawapan K2", lain: "Pautan lain" };
+    var st = META.states.indexOf(sub.st) >= 0 ? sub.st : "";
+    ROWS.unshift({ id: newId(), on: true, s: sub.s, t: sub.t || "percubaan", y: sub.y, st: st, label: sub.st,
+      links: (sub.links || []).map(function (l) { return { t: names[l.k] || l.t, u: l.u }; }), _new: true, _sub: sub.id });
+    $("own-fsub").value = ""; $("own-fq").value = ""; dirty(); draw(); window.scrollTo(0, 0);
+    state("Kiriman disalin ke kad baharu di atas — semak pautan, kemudian tekan <b>Simpan &amp; terbitkan</b>.", "ok");
   };
   window.addEventListener("beforeunload", function (e) { if (DIRTY) { e.preventDefault(); e.returnValue = ""; } });
 })();

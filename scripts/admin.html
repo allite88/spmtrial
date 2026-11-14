@@ -43,6 +43,10 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
 .spc .imgbox{flex-basis:340px}.spc .imgbox img{max-width:340px}
 .spc-top{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .del{color:var(--err)}
+.sub{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card)}.sub.st-diterbitkan{opacity:.65}.sub.st-ditolak{opacity:.5}
+.sub-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.sub-l{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.sub-l a{padding:4px 10px;border-radius:999px;background:#eef2ff;text-decoration:none;font-size:.9rem}
+.sub-act{display:flex;gap:6px;flex-wrap:wrap}.sub .tag{font-size:.8rem;padding:2px 8px;border-radius:999px;background:#fef3c7}.sub.st-diterbitkan .tag{background:#dcfce7}.sub.st-ditolak .tag{background:#fee2e2}
+#sub-badge{background:#dc2626;color:#fff;border-radius:999px;padding:0 6px;font-size:.75rem}#sub-badge:empty{display:none}
 .own{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--card)}.own.off{opacity:.6}.own.new{border-color:var(--brand)}
 .own-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:6px 0}
 .own-g label,.own-l label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
@@ -57,7 +61,7 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
 <body>
 <header>
   <h1>⚙️ Admin __SITE_NAME__</h1>
-  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a><a href="#sendiri" data-tab="sendiri">➕ Kertas sendiri</a></nav>
+  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a><a href="#sendiri" data-tab="sendiri">➕ Kertas sendiri</a><a href="#kiriman" data-tab="kiriman">📥 Kiriman <b id="sub-badge"></b></a></nav>
   <span class="muted" id="counts"></span>
   <span class="sp"></span>
   <span id="status" class="muted"></span>
@@ -111,6 +115,16 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
     <label class="row1">Mesej pertama WhatsApp <input type="text" id="ph-watext" maxlength="300" style="flex:1" placeholder="Hello, I would like to advertise on the SPMTrial website. I am "></label>
   </div>
 </div>
+<div class="wrap" id="sub-panel" hidden>
+  <div class="box"><span id="sub-state" class="muted">Memuatkan…</span>
+    <div class="muted">Kertas yang dikongsi pelawat melalui borang <a href="/kongsi/" target="_blank">spmtrial.com/kongsi/</a>. <b>Tidak dipaparkan di laman</b> sehingga anda semak dan tekan <b>→ Kertas sendiri</b> (kemudian Simpan &amp; terbitkan).</div></div>
+  <div class="box filters">
+    <select id="sub-f"><option value="baru">Baru (belum disemak)</option><option value="">Semua</option><option value="diterbitkan">Diterbitkan</option><option value="ditolak">Ditolak</option></select>
+    <button id="sub-reload">↻ Muat semula</button>
+    <span class="muted" id="sub-count"></span>
+  </div>
+  <div id="sub-list"></div>
+</div>
 <div class="wrap" id="own-panel" hidden>
   <div class="box"><span id="own-state" class="muted">Memuatkan…</span>
     <button class="pri" id="own-save" style="float:right" disabled>Simpan &amp; terbitkan</button>
@@ -152,5 +166,6 @@ window.ADMIN_CFG = __CFG__;
 <script src="admin.js"></script>
 <script src="admin-site.js"></script>
 <script src="admin-own.js"></script>
+<script src="admin-kiriman.js"></script>
 </body>
 </html>

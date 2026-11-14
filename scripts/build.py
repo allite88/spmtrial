@@ -385,7 +385,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
   <div class="wrap">
     <p><strong>{E(SITE_NAME)}</strong> — direktori pautan bahan SPM (soalan percubaan, soalan sebenar, nota, buku teks) yang dikongsi secara awam. Semua fail dihoskan oleh pemilik asal (kebanyakannya Google Drive); kami hanya menyusun pautan supaya lebih mudah dicari.</p>
     <p class="muted">Hak cipta bahan milik penulis / sekolah / jabatan pendidikan berkenaan. Dikemas kini {TODAY}.</p>
-    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
+    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/kongsi/">Kongsi Kertas</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
   </div>
 </footer>
 <script>{JS}</script>
@@ -930,7 +930,7 @@ if NEXT_YEAR not in trial_years:
             f'<li><b>Sementara menunggu:</b> {n_cy} pautan <a href="/soalan-percubaan-spm-{cy}/">trial SPM {cy}</a> + skema jawapan, dan <a href="/soalan-sebenar-spm/">soalan sebenar SPM</a>.</li></ul></section>',
             f'<section class="sec cm-big" id="sertai"><h2>Dapatkan notis trial SPM {ny}</h2><div data-cm-big>'
             f'<p>🎓 <b>Calon SPM {ny}:</b> sertai kumpulan kami — kami beritahu sebaik kertas percubaan SPM {ny} keluar.</p>'
-            f'<p>👩‍🏫 <b>Guru:</b> kongsi kertas percubaan SPM dengan calon seluruh Malaysia — sertai kumpulan guru melalui WhatsApp.</p></div></section>',
+            f'<p>👩‍🏫 <b>Guru:</b> kongsi kertas percubaan SPM dengan calon seluruh Malaysia — sertai kumpulan guru melalui WhatsApp.</p></div><p class="muted">Ada kertas untuk dikongsi? <a href="/kongsi/">Hantar pautan Drive di sini →</a></p></section>',
             f'<section class="sec"><h2>Jangkaan masa trial SPM {ny}</h2><div class="src">'
             + "".join(f'<div class="row"><div class="rl">{E(a)}</div><div class="rc">{E(b)}</div></div>' for a, b in [
                 (f"Jan – Jun {ny}", f"Pembelajaran Tingkatan 5. Ulang kaji dengan trial SPM {cy} dan soalan sebenar SPM."),
@@ -946,6 +946,52 @@ if NEXT_YEAR not in trial_years:
          keywords=f"trial spm {ny}, soalan percubaan spm {ny}, skema jawapan percubaan spm {ny}, bila trial spm {ny} keluar, spm {ny}")
 else:
     NEXT_YEAR = None
+
+# ---- /kongsi/: visitors share papers (Drive links). Goes to the worker; only the owner sees it in /admin → "Kiriman".
+_sopts = "".join(f'<option value="{s_[0]}">{E(s_[1])}</option>' for s_ in sorted(subjects_live, key=lambda x: x[1]))
+_yopts = "".join(f'<option{" selected" if y == trial_years[0] else ""}>{y}</option>' for y in range(trial_years[0] + 1, trial_years[0] - 8, -1))
+_stl = "".join(f'<option value="{E(x)}">' for x in STATES)
+kongsi_body = f"""<h1>Kongsi Kertas Percubaan SPM</h1>
+<p class="lead">Ada kertas soalan percubaan (trial) SPM atau skema jawapan? Kongsi pautan Google Drive di sini. Kami <strong>semak dahulu</strong> sebelum menyiarkannya — kertas yang diterima akan disusun ikut subjek, tahun dan negeri untuk manfaat semua calon SPM.</p>
+<form id="kf" class="kform" novalidate>
+  <div class="kgrid">
+    <label>Tahun<select name="y" required>{_yopts}</select></label>
+    <label>Jenis<select name="t"><option value="percubaan">Soalan percubaan (trial)</option><option value="sebenar">Soalan sebenar SPM</option></select></label>
+    <label>Subjek<select name="s" required><option value="">— pilih subjek —</option>{_sopts}</select></label>
+    <label>Negeri / institusi<input name="st" list="kst" maxlength="80" required placeholder="cth. Johor, MRSM, SBP, SMK ABC"></label>
+  </div>
+  <datalist id="kst">{_stl}</datalist>
+  <fieldset><legend>Pautan Google Drive <span class="muted">(isi yang ada sahaja)</span></legend>
+    <label>Kertas 1<input name="k1" type="url" placeholder="https://drive.google.com/…"></label>
+    <label>Kertas 2<input name="k2" type="url" placeholder="https://drive.google.com/…"></label>
+    <label>Skema jawapan K1<input name="j1" type="url" placeholder="https://drive.google.com/…"></label>
+    <label>Skema jawapan K2<input name="j2" type="url" placeholder="https://drive.google.com/…"></label>
+    <label>Pautan lain (cth. Kertas 3, folder)<input name="lain" type="url" placeholder="https://…"></label>
+  </fieldset>
+  <p class="muted">Pastikan fail Drive dikongsi sebagai <b>"Sesiapa yang mempunyai pautan" (Anyone with the link)</b>.</p>
+  <div class="kgrid">
+    <label>Nombor WhatsApp anda<input name="wa" type="tel" maxlength="20" required placeholder="cth. 012-345 6789"></label>
+    <label>Nama (pilihan)<input name="name" maxlength="80"></label>
+    <label>Sekolah (pilihan)<input name="school" maxlength="120" placeholder="cth. SMK Taman ABC"></label>
+  </div>
+  <label>Catatan (pilihan)<textarea name="note" rows="2" maxlength="500"></textarea></label>
+  <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+  <button type="submit" class="kbtn">Hantar untuk semakan</button>
+  <p id="kmsg" role="status"></p>
+</form>
+<p class="muted">Nombor WhatsApp hanya digunakan untuk menghubungi anda jika ada pertanyaan tentang kertas yang dikongsi, dan tidak dipaparkan di laman. Lihat <a href="/privasi/">Dasar Privasi</a>.</p>
+<script>(function(){{var f=document.getElementById("kf"),m=document.getElementById("kmsg");
+f.addEventListener("submit",function(e){{e.preventDefault();var d={{}};new FormData(f).forEach(function(v,k){{d[k]=String(v).trim()}});
+if(!d.s){{m.className="kerr";m.textContent="Pilih subjek.";return}}if(!d.st){{m.className="kerr";m.textContent="Isi negeri / institusi.";return}}
+if(!d.k1&&!d.k2&&!d.j1&&!d.j2&&!d.lain){{m.className="kerr";m.textContent="Masukkan sekurang-kurangnya satu pautan.";return}}
+if(d.wa.replace(/\\D/g,"").length<9){{m.className="kerr";m.textContent="Masukkan nombor WhatsApp yang sah.";return}}
+var b=f.querySelector("button");b.disabled=true;m.className="";m.textContent="Menghantar…";
+fetch((window.BASE||"")+"/api/kongsi",{{method:"POST",headers:{{"content-type":"application/json"}},body:JSON.stringify(d)}}).then(function(r){{return r.json().then(function(j){{if(!r.ok)throw new Error(j.error||r.status);return j}})}})
+.then(function(){{f.reset();m.className="kok";m.textContent="✓ Terima kasih! Kertas anda diterima dan akan disemak sebelum disiarkan.";try{{gtag("event","kongsi_kertas",{{}})}}catch(x){{}}}})
+.catch(function(x){{m.className="kerr";m.textContent="Gagal hantar: "+x.message}}).then(function(){{b.disabled=false}})}})}})();</script>"""
+page("/kongsi/", f"Kongsi Kertas Percubaan SPM (Trial SPM) — Hantar Pautan Drive | {SITE_NAME}",
+     "Kongsi kertas soalan percubaan SPM dan skema jawapan dengan calon SPM seluruh Malaysia. Hantar pautan Google Drive — kami semak sebelum disiarkan.",
+     kongsi_body, crumbs=[("Utama", "/"), ("Kongsi kertas", "/kongsi/")])
 
 # ---- home
 cards = []
@@ -1016,12 +1062,13 @@ json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live
 json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
 _ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
 _av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), "rb").read()).hexdigest()[:8]
-_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('"rows.json"', '"rows.json"')
+_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-kiriman.js"', 'src="admin-kiriman.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), "rb").read()).hexdigest()[:8])
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), os.path.join(OUT, "admin", "admin-site.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), os.path.join(OUT, "admin", "admin-own.js"))
+shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), os.path.join(OUT, "admin", "admin-kiriman.js"))
 print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["id"] in QUIZ))
 
 # ---- static content pages

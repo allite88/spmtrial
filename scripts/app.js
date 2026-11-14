@@ -51,7 +51,7 @@ QZP.then(applyAllite);
       var tw=cm.tchWa?"https://wa.me/"+cm.tchWa+"?text="+encodeURIComponent(String(cm.tchMsg||"").replace(/\{tahun\}/g,yr)):"";
       var parts=[];
       if(cm.stuLink)parts.push('<div class="cmx-i"><span>🎓 '+T(cm.stuText||"Calon SPM {tahun}: sertai kumpulan — dapat notis sebaik kertas percubaan keluar")+'</span><a class="cmx-b cmx-s" href="'+esc(cm.stuLink)+'" target="_blank" rel="noopener" data-cm="pelajar">'+T(cm.stuBtn||"Sertai kumpulan")+' →</a></div>');
-      if(tw)parts.push('<div class="cmx-i"><span>👩‍🏫 '+T(cm.tchText||"Guru: kongsi kertas percubaan SPM — sertai kumpulan guru")+'</span><a class="cmx-b cmx-t" href="'+esc(tw)+'" target="_blank" rel="noopener" data-cm="guru">💬 WhatsApp</a></div>');
+      if(tw)parts.push('<div class="cmx-i"><span>👩‍🏫 '+T(cm.tchText||"Guru: kongsi kertas percubaan SPM — sertai kumpulan guru")+'</span><span class="cmx-bs"><a class="cmx-b cmx-k" href="'+(window.BASE||"")+'/kongsi/" data-cm="borang">📤 Kongsi kertas</a><a class="cmx-b cmx-t" href="'+esc(tw)+'" target="_blank" rel="noopener" data-cm="guru">💬 WhatsApp</a></span></div>');
       cb.innerHTML=cm.on&&parts.length?'<div class="cmx">'+parts.join("")+'</div>':"";
     }
     var big=document.querySelector("[data-cm-big]");
