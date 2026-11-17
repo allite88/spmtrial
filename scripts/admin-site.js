@@ -6,13 +6,14 @@
 
   // ---- tabs: quiz | iklan | sendiri
   function tab(name) {
-    if (["iklan", "sendiri", "kiriman"].indexOf(name) < 0) name = "quiz";
-    $("site-panel").hidden = name !== "iklan"; $("quiz-panel").hidden = name !== "quiz"; $("own-panel").hidden = name !== "sendiri"; $("sub-panel").hidden = name !== "kiriman";
+    if (["iklan", "sendiri", "kiriman", "pesanan"].indexOf(name) < 0) name = "quiz";
+    $("site-panel").hidden = name !== "iklan"; $("quiz-panel").hidden = name !== "quiz"; $("own-panel").hidden = name !== "sendiri"; $("sub-panel").hidden = name !== "kiriman"; $("ord-panel").hidden = name !== "pesanan";
     ["counts", "status", "save"].forEach(function (id) { $(id).style.display = name === "quiz" ? "" : "none"; });
     [].forEach.call(document.querySelectorAll(".tabs a"), function (a) { a.classList.toggle("on", a.dataset.tab === name); });
     if (name === "iklan" && !SITE) load();
     if (name === "sendiri" && window.ownLoad) window.ownLoad().catch(function () {});
     if (name === "kiriman" && window.subLoad) window.subLoad();
+    if (name === "pesanan" && window.ordLoad) window.ordLoad();
   }
   window.addEventListener("hashchange", function () { tab(location.hash.slice(1)); });
   setTimeout(function () { tab(location.hash.slice(1)); }, 0);

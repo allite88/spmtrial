@@ -43,6 +43,11 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
 .spc .imgbox{flex-basis:340px}.spc .imgbox img{max-width:340px}
 .spc-top{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .del{color:var(--err)}
+.ord{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card)}.ord.st-dihantar,.ord.st-batal{opacity:.6}
+.ord-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}.ord-no{font-size:1.15rem}.ord .tag{font-size:.8rem;padding:2px 8px;border-radius:999px;background:#fef3c7}
+.ord.st-dibayar .tag{background:#dbeafe}.ord.st-dicetak .tag{background:#ede9fe}.ord.st-dihantar .tag{background:#dcfce7}.ord.st-batal .tag{background:#fee2e2}
+.ord table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.92rem}.ord td{padding:4px 6px;border-top:1px solid var(--line);vertical-align:top}.ord td.n{text-align:right;white-space:nowrap}
+.ord-act{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ord-prog{font-size:.9rem}.ord textarea{width:100%;box-sizing:border-box;margin:6px 0;font:inherit;font-size:.9rem}
 .sub{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card)}.sub.st-diterbitkan{opacity:.65}.sub.st-ditolak{opacity:.5}
 .sub-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.sub-l{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.sub-l a{padding:4px 10px;border-radius:999px;background:#eef2ff;text-decoration:none;font-size:.9rem}
 .sub-act{display:flex;gap:6px;flex-wrap:wrap}.sub .tag{font-size:.8rem;padding:2px 8px;border-radius:999px;background:#fef3c7}.sub.st-diterbitkan .tag{background:#dcfce7}.sub.st-ditolak .tag{background:#fee2e2}
@@ -61,7 +66,7 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
 <body>
 <header>
   <h1>⚙️ Admin __SITE_NAME__</h1>
-  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a><a href="#sendiri" data-tab="sendiri">➕ Kertas sendiri</a><a href="#kiriman" data-tab="kiriman">📥 Kiriman <b id="sub-badge"></b></a></nav>
+  <nav class="tabs"><a href="#quiz" data-tab="quiz">Allite Quiz</a><a href="#iklan" data-tab="iklan">❤️ Sokongan &amp; Iklan</a><a href="#sendiri" data-tab="sendiri">➕ Kertas sendiri</a><a href="#kiriman" data-tab="kiriman">📥 Kiriman <b id="sub-badge"></b></a><a href="#pesanan" data-tab="pesanan">🖨 Pesanan <b id="ord-badge"></b></a></nav>
   <span class="muted" id="counts"></span>
   <span class="sp"></span>
   <span id="status" class="muted"></span>
@@ -115,6 +120,18 @@ tr.dirty td{background:#fffbeb}tr.has td.q input{border-color:#fdba74}
     <label class="row1">Mesej pertama WhatsApp <input type="text" id="ph-watext" maxlength="300" style="flex:1" placeholder="Hello, I would like to advertise on the SPMTrial website. I am "></label>
   </div>
 </div>
+<div class="wrap" id="ord-panel" hidden>
+  <div class="box"><span id="ord-state" class="muted">Memuatkan…</span>
+    <div class="muted">Pesanan cetakan dari <a href="/cetak/" target="_blank">spmtrial.com/cetak/</a>. Pelajar hantar senarai melalui WhatsApp dengan <b>No. pesanan</b> — cari nombor itu di sini. Harga dikira oleh pelayan (tidak boleh diubah pelajar).<br>
+    <b>🖨 Jana PDF cetakan</b>: semua kertas dalam satu fail — A4 melintang, 2 halaman semuka, setiap kertas mula pada helai baharu. Cetak <b>dua belah, flip pada tepi pendek (short edge)</b>.</div></div>
+  <div class="box filters">
+    <select id="ord-f"><option value="aktif">Aktif (belum dihantar)</option><option value="">Semua</option><option value="baru">Baru</option><option value="dibayar">Dibayar</option><option value="dicetak">Dicetak</option><option value="dihantar">Dihantar</option><option value="batal">Batal</option></select>
+    <input type="search" id="ord-q" placeholder="Cari no. pesanan / kertas…">
+    <button id="ord-reload">↻ Muat semula</button>
+    <span class="muted" id="ord-count"></span>
+  </div>
+  <div id="ord-list"></div>
+</div>
 <div class="wrap" id="sub-panel" hidden>
   <div class="box"><span id="sub-state" class="muted">Memuatkan…</span>
     <div class="muted">Kertas yang dikongsi pelawat melalui borang <a href="/kongsi/" target="_blank">spmtrial.com/kongsi/</a>. <b>Tidak dipaparkan di laman</b> sehingga anda semak dan tekan <b>→ Kertas sendiri</b> (kemudian Simpan &amp; terbitkan).</div></div>
@@ -167,5 +184,7 @@ window.ADMIN_CFG = __CFG__;
 <script src="admin-site.js"></script>
 <script src="admin-own.js"></script>
 <script src="admin-kiriman.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="admin-pesanan.js"></script>
 </body>
 </html>

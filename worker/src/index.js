@@ -167,6 +167,42 @@ export default {
       return json({ ok: true });
     }
 
+    // ---- print orders (admin only): list / set status / delete, and a same-origin proxy for the Drive PDFs used to build the print file
+    if (path === "/admin/api/pesanan" || path === "/admin/api/pdf") {
+      const who = (req.headers.get("cf-access-authenticated-user-email") || "").toLowerCase();
+      const allowed = (env.ADMIN_EMAILS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+      if (!who || !allowed.includes(who)) return json({ error: "Tidak dibenarkan" }, 403);
+      if (path === "/admin/api/pdf") {
+        const id = url.searchParams.get("id") || "";
+        if (!/^[\w-]{20,80}$/.test(id)) return json({ error: "id tidak sah" }, 400);
+        const r = await fetch("https://drive.usercontent.google.com/download?id=" + id + "&export=download&confirm=t", { headers: { "user-agent": "Mozilla/5.0" } });
+        if (!r.ok) return json({ error: "Drive " + r.status }, 502);
+        return new Response(r.body, { headers: { "content-type": "application/pdf", "cache-control": "private, max-age=3600" } });
+      }
+      if (req.method === "GET") {
+        const keys = [];
+        let cursor;
+        do { const r = await env.QUIZ.list({ prefix: "order:", cursor }); keys.push(...r.keys); cursor = r.list_complete ? null : r.cursor; } while (cursor && keys.length < 3000);
+        const orders = (await Promise.all(keys.map((k) => env.QUIZ.get(k.name, "json")))).filter(Boolean).sort((a, b) => (a.at < b.at ? 1 : -1));
+        return json({ orders, user: who }, 200, { "cache-control": "no-store" });
+      }
+      if (req.method === "POST") {
+        let b;
+        try { b = await req.json(); } catch (e) { return json({ error: "JSON tidak sah" }, 400); }
+        const no = String(b.no || "");
+        if (!/^C\d{6}-\d{4}$/.test(no)) return json({ error: "No. pesanan tidak sah" }, 400);
+        const key = "order:" + no;
+        if (b.action === "delete") { await env.QUIZ.delete(key); return json({ ok: true }); }
+        const cur = await env.QUIZ.get(key, "json");
+        if (!cur) return json({ error: "Tiada" }, 404);
+        if (["baru", "dibayar", "dicetak", "dihantar", "batal"].includes(b.status)) cur.status = b.status;
+        if (typeof b.nota === "string") cur.nota = b.nota.slice(0, 1000);
+        await env.QUIZ.put(key, JSON.stringify(cur), { expirationTtl: 60 * 60 * 24 * 400 });
+        return json({ ok: true, order: cur });
+      }
+      return json({ error: "Kaedah tidak disokong" }, 405);
+    }
+
     if (path === "/admin/api/kiriman") {
       const who = (req.headers.get("cf-access-authenticated-user-email") || "").toLowerCase();
       const allowed = (env.ADMIN_EMAILS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);

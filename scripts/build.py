@@ -1065,7 +1065,7 @@ json.dump({"rows": adm_rows, "subjects": [[s_[0], s_[1]] for s_ in subjects_live
 json.dump(QUIZ, open(os.path.join(OUT, "admin", "quiz_links.json"), "w", encoding="utf-8"), ensure_ascii=False)
 _ah = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.html"), encoding="utf-8").read()
 _av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), "rb").read()).hexdigest()[:8]
-_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-kiriman.js"', 'src="admin-kiriman.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), "rb").read()).hexdigest()[:8])
+_ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-kiriman.js"', 'src="admin-kiriman.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-pesanan.js"', 'src="admin-pesanan.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-pesanan.js"), "rb").read()).hexdigest()[:8])
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
 # ---- print service: page counts (data/pagecount.json, made by scripts/pagecount.py) → /cetak.json  {rowId: [name, subject, [[label, pages, driveId], ...]]}
@@ -1105,6 +1105,7 @@ shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js")
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), os.path.join(OUT, "admin", "admin-site.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), os.path.join(OUT, "admin", "admin-own.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), os.path.join(OUT, "admin", "admin-kiriman.js"))
+shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-pesanan.js"), os.path.join(OUT, "admin", "admin-pesanan.js"))
 print("admin rows:", len(adm_rows), "with quiz:", sum(1 for r in adm_rows if r["id"] in QUIZ))
 
 # ---- static content pages
