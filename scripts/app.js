@@ -226,7 +226,7 @@ document.addEventListener("click",function(e){
       '<tr><td>Pos</td><td>'+(t.pos?'Percuma untuk cetakan RM150 ke atas':'✓ Pos percuma')+'</td><td>'+rm(t.pos)+'</td></tr>'+
       '<tr class="ct-tot"><td>Jumlah</td><td></td><td>'+rm(t.tot)+'</td></tr></table>'+
       (t.h?'<button type="button" class="ct-wa" id="ct-wa">💬 Pesan melalui WhatsApp</button>':'<p class="kerr">Tandakan sekurang-kurangnya satu kertas.</p>')+
-      '<p class="muted ct-note">Mesej WhatsApp dengan senarai ini akan dibuka — tekan <b>Hantar</b>. Kami akan sahkan jumlah dan cara bayaran.</p>'+
+      '<p class="muted ct-note">Mesej WhatsApp dengan senarai ini akan dibuka — tekan <b>Hantar</b>. Kami akan sahkan jumlah dan cara bayaran. Kertas siap &amp; dipos dalam <b>10 hari bekerja</b> selepas bayaran disahkan.</p>'+
       '<p id="ct-msg" role="status"></p><button type="button" class="ct-clear" id="ct-clear">Kosongkan senarai</button></div>';
     app.innerHTML=h;
   }
@@ -237,7 +237,7 @@ document.addEventListener("click",function(e){
     L.push("","Format: A4, 4 halaman PDF sehelai (2 kiri-kanan, depan & belakang), setiap kertas berasingan");
     L.push("Cetakan: "+o.helai+" helai × RM0.20 = "+rm(o.cetak));
     L.push("Pos: "+(o.pos?rm(o.pos)+" (percuma untuk cetakan RM150 ke atas)":"PERCUMA"));
-    L.push("JUMLAH: "+rm(o.jumlah),"","Nama:","Alamat:","No. telefon:");
+    L.push("JUMLAH: "+rm(o.jumlah),"Tempoh: siap & dipos dalam 10 hari bekerja selepas bayaran disahkan","","Nama:","Alamat:","No. telefon:");
     var s=L.join("\n");
     if(s.length>1800&&o.no){   // very long lists: one line per paper, full list is saved under the order number
       L=["Salam, saya nak cetak kertas SPMTrial.","No. pesanan: #"+o.no,""];
@@ -255,7 +255,7 @@ document.addEventListener("click",function(e){
     fetch(B+"/api/cetak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({items:cart})})
       .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||r.status);return j})})
       .catch(function(){return local()})   // still let the student order if the server is unreachable
-      .then(function(o){ga("cetak_pesan",{value:o.jumlah/100,currency:"MYR"});
+      .then(function(o){ga("cetak_pesan",{value:o.jumlah/100,currency:"MYR"});if(o.no){cart=[];sv()}   // empty the list so the next person on a shared computer starts clean
         msg.className="kok";msg.innerHTML="✓ "+(o.no?"No. pesanan <b>#"+esc(o.no)+"</b>. ":"")+"Membuka WhatsApp… Jika tidak terbuka, <a id=\"ct-open\" href=\"#\">tekan di sini</a>.";
         var u="https://wa.me/"+WA+"?text="+encodeURIComponent(message(o));
         document.getElementById("ct-open").href=u;btn.disabled=false;location.href=u});

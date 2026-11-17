@@ -143,7 +143,13 @@ export default {
       if (!out.length) return json({ error: "Senarai cetakan kosong" }, 400);
       const cetak = helai * 20, pos = cetak >= 15000 ? 0 : 600;   // sen
       const d = new Date(Date.now() + 8 * 3600e3).toISOString();  // Malaysia time
-      const no = "C" + d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10) + "-" + String(Math.floor(1000 + Math.random() * 9000));
+      // order number: date + 5 random digits; checked against existing orders so two students never share one
+      let no = "";
+      for (let t = 0; t < 8 && !no; t++) {
+        const c = "C" + d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10) + "-" + String(Math.floor(10000 + Math.random() * 90000));
+        if (!(await env.QUIZ.get("order:" + c))) no = c;
+      }
+      if (!no) return json({ error: "Cuba lagi" }, 503);
       const order = { no, at: new Date().toISOString(), status: "baru", items: out, muka, helai, cetak, pos, jumlah: cetak + pos };
       await env.QUIZ.put("order:" + no, JSON.stringify(order), { expirationTtl: 60 * 60 * 24 * 400 });
       await env.QUIZ.put(rk, String(n + 1), { expirationTtl: 3700 });
@@ -190,7 +196,7 @@ export default {
         let b;
         try { b = await req.json(); } catch (e) { return json({ error: "JSON tidak sah" }, 400); }
         const no = String(b.no || "");
-        if (!/^C\d{6}-\d{4}$/.test(no)) return json({ error: "No. pesanan tidak sah" }, 400);
+        if (!/^C\d{6}-\d{4,5}$/.test(no)) return json({ error: "No. pesanan tidak sah" }, 400);
         const key = "order:" + no;
         if (b.action === "delete") { await env.QUIZ.delete(key); return json({ ok: true }); }
         const cur = await env.QUIZ.get(key, "json");

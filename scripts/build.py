@@ -1093,7 +1093,8 @@ cetak_body = f"""<h1>🖨 Cetak Kertas Percubaan SPM</h1>
 <ul><li>Setiap muka kertas A4 memuatkan <b>2 halaman PDF</b> (kiri &amp; kanan), dicetak <b>depan &amp; belakang</b> — jadi <b>1 helai A4 = 4 halaman PDF</b>.</li>
 <li>Harga: <b>RM0.20 sehelai A4</b>, termasuk helai terakhir yang separuh kosong. Contoh: kertas 31 halaman → 8 helai → RM1.60.</li>
 <li>Setiap kertas (K1, K2, Jawapan) dicetak <b>berasingan</b>.</li>
-<li>Pos <b>RM6.00</b> · <b>Percuma</b> untuk cetakan RM150 ke atas.</li></ul>
+<li>Pos <b>RM6.00</b> · <b>Percuma</b> untuk cetakan RM150 ke atas.</li>
+<li>Tempoh: kertas siap &amp; dipos dalam <b>10 hari bekerja</b> selepas bayaran disahkan.</li></ul>
 <p class="muted">Bayaran ini ialah caj perkhidmatan cetakan dan penghantaran sahaja. Semua kertas boleh dimuat turun secara percuma di laman ini.</p></div>
 <div id="ct-app"><p class="muted">Memuatkan senarai…</p></div>
 <noscript><p>Sila hidupkan JavaScript untuk menggunakan senarai cetakan.</p></noscript>"""

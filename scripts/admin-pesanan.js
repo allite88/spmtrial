@@ -26,7 +26,7 @@
     var f = $("ord-f").value, q = $("ord-q").value.trim().toLowerCase().replace(/^#/, "");
     var L = ORD.filter(function (o) {
       if (f === "aktif" ? ["baru", "dibayar", "dicetak"].indexOf(o.status) < 0 : f && o.status !== f) return false;
-      if (q && (o.no + " " + o.items.map(function (i) { return i.name; }).join(" ")).toLowerCase().indexOf(q) < 0) return false;
+      if (q && (o.no + " " + o.items.map(function (i) { return i.name; }).join(" ") + " " + (o.nota || "")).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
     $("ord-count").textContent = ORD.length + " pesanan" + (L.length !== ORD.length ? " (" + L.length + " dipapar)" : "");
@@ -44,7 +44,7 @@
         '<span class="tag">' + esc(LABEL[o.status] || o.status) + '</span> <span class="muted">' + esc(when(o.at)) + "</span></div>" +
         "<div><b>" + rm(o.jumlah) + '</b> <span class="muted">(' + o.helai + " helai " + rm(o.cetak) + " + pos " + rm(o.pos) + ")</span></div></div>" +
         "<table>" + rows + "</table>" +
-        '<textarea rows="2" placeholder="Nota (nama, alamat, no. tracking…)" data-nota>' + esc(o.nota || "") + "</textarea>" +
+        '<textarea rows="2" placeholder="Nota: no. WhatsApp pelajar, nama, alamat, no. tracking…" data-nota>' + esc(o.nota || "") + "</textarea>" +
         '<div class="ord-act"><button class="pri" data-a="pdf">🖨 Jana PDF cetakan</button>' +
         (nx ? '<button data-a="' + nx + '">→ ' + LABEL[nx] + "</button>" : "") +
         '<select data-a="set">' + Object.keys(LABEL).map(function (k) { return '<option value="' + k + '"' + (k === o.status ? " selected" : "") + ">" + LABEL[k] + "</option>"; }).join("") + "</select>" +
