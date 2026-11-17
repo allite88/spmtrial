@@ -1090,15 +1090,15 @@ json.dump(CETAK, open(os.path.join(OUT, "cetak.json"), "w", encoding="utf-8"), e
 cetak_body = f"""<h1>🖨 Cetak Kertas Percubaan SPM</h1>
 <p class="lead">Pilih kertas di halaman subjek (butang <b>🖨 Cetak</b> di sebelah setiap kertas), semak senarai di sini, kemudian pesan melalui WhatsApp. Kami cetak dan pos ke rumah anda.</p>
 <div class="ct-info"><b>🖨 Cara kiraan harga</b>
-<ul><li>Setiap muka kertas A4 memuatkan <b>2 halaman PDF</b> (kiri &amp; kanan), dicetak <b>depan &amp; belakang</b> — jadi <b>1 helai = 4 halaman PDF</b>.</li>
-<li>Harga: <b>RM0.10 semuka</b>. Muka belakang yang kosong tidak dikira.</li>
+<ul><li>Setiap muka kertas A4 memuatkan <b>2 halaman PDF</b> (kiri &amp; kanan), dicetak <b>depan &amp; belakang</b> — jadi <b>1 helai A4 = 4 halaman PDF</b>.</li>
+<li>Harga: <b>RM0.20 sehelai A4</b>, termasuk helai terakhir yang separuh kosong. Contoh: kertas 31 halaman → 8 helai → RM1.60.</li>
 <li>Setiap kertas (K1, K2, Jawapan) dicetak <b>berasingan</b>.</li>
 <li>Pos <b>RM6.00</b> · <b>Percuma</b> untuk cetakan RM150 ke atas.</li></ul>
 <p class="muted">Bayaran ini ialah caj perkhidmatan cetakan dan penghantaran sahaja. Semua kertas boleh dimuat turun secara percuma di laman ini.</p></div>
 <div id="ct-app"><p class="muted">Memuatkan senarai…</p></div>
 <noscript><p>Sila hidupkan JavaScript untuk menggunakan senarai cetakan.</p></noscript>"""
 page("/cetak/", f"Cetak Kertas Percubaan SPM — Servis Cetakan & Pos | {SITE_NAME}",
-     "Servis cetakan kertas soalan percubaan SPM dan skema jawapan: RM0.10 semuka (2 halaman PDF semuka, depan & belakang), pos ke seluruh Malaysia. Pesan melalui WhatsApp.",
+     "Servis cetakan kertas soalan percubaan SPM dan skema jawapan: RM0.20 sehelai A4 (4 halaman PDF sehelai, depan & belakang), pos ke seluruh Malaysia. Pesan melalui WhatsApp.",
      cetak_body, crumbs=[("Utama", "/"), ("Cetak", "/cetak/")])
 
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))

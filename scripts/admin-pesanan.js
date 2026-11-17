@@ -42,7 +42,7 @@
       var nx = NEXT[o.status];
       return '<div class="ord st-' + esc(o.status) + '" data-no="' + esc(o.no) + '"><div class="ord-top"><div><b class="ord-no">#' + esc(o.no) + "</b> " +
         '<span class="tag">' + esc(LABEL[o.status] || o.status) + '</span> <span class="muted">' + esc(when(o.at)) + "</span></div>" +
-        "<div><b>" + rm(o.jumlah) + '</b> <span class="muted">(' + o.muka + " muka " + rm(o.cetak) + " + pos " + rm(o.pos) + " · " + o.helai + " helai)</span></div></div>" +
+        "<div><b>" + rm(o.jumlah) + '</b> <span class="muted">(' + o.helai + " helai " + rm(o.cetak) + " + pos " + rm(o.pos) + ")</span></div></div>" +
         "<table>" + rows + "</table>" +
         '<textarea rows="2" placeholder="Nota (nama, alamat, no. tracking…)" data-nota>' + esc(o.nota || "") + "</textarea>" +
         '<div class="ord-act"><button class="pri" data-a="pdf">🖨 Jana PDF cetakan</button>' +
@@ -102,11 +102,11 @@
       var pg = out.addPage([W, H]), y = H - 60;
       pg.drawText("SPMTrial - Pesanan cetakan", { x: 50, y: y, size: 14, font: font }); y -= 36;
       pg.drawText("#" + o.no, { x: 50, y: y, size: 34, font: bold }); y -= 30;
-      pg.drawText(txt(when(o.at) + "   |   " + o.muka + " muka, " + o.helai + " helai   |   Jumlah " + rm(o.jumlah) + " (cetakan " + rm(o.cetak) + " + pos " + rm(o.pos) + ")"), { x: 50, y: y, size: 11, font: font }); y -= 30;
+      pg.drawText(txt(when(o.at) + "   |   " + o.helai + " helai   |   Jumlah " + rm(o.jumlah) + " (cetakan " + rm(o.cetak) + " + pos " + rm(o.pos) + ")"), { x: 50, y: y, size: 11, font: font }); y -= 30;
       o.items.forEach(function (it, i) {
         if (y < 150) return;
         pg.drawText(txt((i + 1) + ". " + it.name), { x: 50, y: y, size: 12, font: bold }); y -= 16;
-        pg.drawText(txt("    " + it.files.map(function (f) { return f.t + " (" + f.p + " ms, " + f.m + " muka)"; }).join("   ")), { x: 50, y: y, size: 10, font: font }); y -= 20;
+        pg.drawText(txt("    " + it.files.map(function (f) { return f.t + " (" + f.p + " ms, " + (f.h || Math.ceil(f.p / 4)) + " helai)"; }).join("   ")), { x: 50, y: y, size: 10, font: font }); y -= 20;
       });
       var ny = 120;
       ["Nama:", "Alamat:", "", "No. telefon:"].forEach(function (l) { pg.drawText(l, { x: 50, y: ny, size: 11, font: font }); pg.drawLine({ start: { x: 130, y: ny - 2 }, end: { x: W - 50, y: ny - 2 }, thickness: 0.5 }); ny -= 24; });

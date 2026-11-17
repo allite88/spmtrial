@@ -191,13 +191,13 @@ document.addEventListener("click",function(e){
   function find(id){for(var i=0;i<cart.length;i++)if(cart[i].id===id)return i;return -1}
   function data(){if(!CT)CT=fetch(B+"/cetak.json").then(function(r){return r.ok?r.json():{}}).catch(function(){return{}}).then(function(j){D=j||{};cart=cart.filter(function(c){return D[c.id]});return D});return CT}
   function totals(){var m=0,h=0,n=0;cart.forEach(function(c){var r=D[c.id];if(!r)return;var any=0;r[2].forEach(function(f){if(c.f.indexOf(f[2])>-1){m+=muka(f[1]);h+=helai(f[1]);any=1}});n+=any});
-    var ct=m*10,pos=!m||ct>=15000?0:600;return{n:n,m:m,h:h,ct:ct,pos:pos,tot:ct+pos}}
+    var ct=h*20,pos=!h||ct>=15000?0:600;return{n:n,m:m,h:h,ct:ct,pos:pos,tot:ct+pos}}
   function chip(b,id){var on=find(id)>-1;b.textContent=on?"✓ Dalam senarai cetak":"🖨 Cetak";b.classList.toggle("on",on)}
   function bar(){
     var el=document.getElementById("ctbar");if(document.getElementById("ct-app"))return;
     var t=totals();if(!t.n){if(el)el.remove();return}
     if(!el){el=document.createElement("div");el.id="ctbar";document.body.appendChild(el)}
-    el.innerHTML='<div class="wrap ctbar-in"><span>🖨 <b>'+t.n+'</b> kertas · '+t.m+' muka · <b>'+rm(t.ct)+'</b></span><a class="ctbar-go" href="'+B+'/cetak/">Semak &amp; pesan →</a></div>';
+    el.innerHTML='<div class="wrap ctbar-in"><span>🖨 <b>'+t.n+'</b> kertas · '+t.h+' helai · <b>'+rm(t.ct)+'</b></span><a class="ctbar-go" href="'+B+'/cetak/">Semak &amp; pesan →</a></div>';
   }
   function rows(){
     [].forEach.call(document.querySelectorAll('.row[id^="r-"]'),function(row){
@@ -217,39 +217,39 @@ document.addEventListener("click",function(e){
     var t=totals(),h="";
     cart.forEach(function(c,ci){var r=D[c.id];if(!r)return;var sm=0;
       h+='<div class="ct-item"><div class="ct-h"><b>'+(ci+1)+'. '+esc(r[0])+'</b><button type="button" class="ct-del" data-del="'+ci+'">Buang</button></div>';
-      r[2].forEach(function(f){var on=c.f.indexOf(f[2])>-1;if(on)sm+=muka(f[1]);
-        h+='<label class="ct-f'+(on?"":" off")+'"><input type="checkbox" data-ci="'+ci+'" data-f="'+esc(f[2])+'"'+(on?" checked":"")+'> <span class="ct-fl">'+esc(f[0])+'</span><span class="ct-fm">'+f[1]+' ms → '+muka(f[1])+' muka · '+helai(f[1])+' helai · '+rm(muka(f[1])*10)+'</span></label>'});
-      h+='<div class="ct-sub">'+sm+' muka · <b>'+rm(sm*10)+'</b></div></div>'});
+      r[2].forEach(function(f){var on=c.f.indexOf(f[2])>-1;if(on)sm+=helai(f[1]);
+        h+='<label class="ct-f'+(on?"":" off")+'"><input type="checkbox" data-ci="'+ci+'" data-f="'+esc(f[2])+'"'+(on?" checked":"")+'> <span class="ct-fl">'+esc(f[0])+'</span><span class="ct-fm">'+f[1]+' ms → '+helai(f[1])+' helai · '+rm(helai(f[1])*20)+'</span></label>'});
+      h+='<div class="ct-sub">'+sm+' helai · <b>'+rm(sm*20)+'</b></div></div>'});
     var need=15000-t.ct;
     h+='<div class="ct-sum"><table>'+
-      '<tr><td>Cetakan</td><td>'+t.m+' muka × RM0.10 ('+t.h+' helai)</td><td>'+rm(t.ct)+'</td></tr>'+
+      '<tr><td>Cetakan</td><td>'+t.h+' helai A4 × RM0.20</td><td>'+rm(t.ct)+'</td></tr>'+
       '<tr><td>Pos</td><td>'+(t.pos?'Percuma untuk cetakan RM150 ke atas':'✓ Pos percuma')+'</td><td>'+rm(t.pos)+'</td></tr>'+
       '<tr class="ct-tot"><td>Jumlah</td><td></td><td>'+rm(t.tot)+'</td></tr></table>'+
-      (t.m?'<button type="button" class="ct-wa" id="ct-wa">💬 Pesan melalui WhatsApp</button>':'<p class="kerr">Tandakan sekurang-kurangnya satu kertas.</p>')+
+      (t.h?'<button type="button" class="ct-wa" id="ct-wa">💬 Pesan melalui WhatsApp</button>':'<p class="kerr">Tandakan sekurang-kurangnya satu kertas.</p>')+
       '<p class="muted ct-note">Mesej WhatsApp dengan senarai ini akan dibuka — tekan <b>Hantar</b>. Kami akan sahkan jumlah dan cara bayaran.</p>'+
       '<p id="ct-msg" role="status"></p><button type="button" class="ct-clear" id="ct-clear">Kosongkan senarai</button></div>';
     app.innerHTML=h;
   }
   function message(o){
     var L=["Salam, saya nak cetak kertas SPMTrial."];if(o.no)L.push("No. pesanan: #"+o.no);L.push("");
-    o.items.forEach(function(it,i){var m=0;it.files.forEach(function(f){m+=f.m});
-      L.push((i+1)+". "+it.name);L.push("   "+it.files.map(function(f){return f.t+" "+f.p+" ms ("+f.m+" muka)"}).join(" · "));L.push("   = "+m+" muka → "+rm(m*10))});
-    L.push("","Format: A4, 2 halaman PDF semuka (kiri-kanan), depan & belakang — 4 halaman sehelai");
-    L.push("Cetakan: "+o.muka+" muka × RM0.10 = "+rm(o.cetak)+" ("+o.helai+" helai)");
+    o.items.forEach(function(it,i){var m=0;it.files.forEach(function(f){m+=f.h});
+      L.push((i+1)+". "+it.name);L.push("   "+it.files.map(function(f){return f.t+" "+f.p+" ms ("+f.h+" helai)"}).join(" · "));L.push("   = "+m+" helai → "+rm(m*20))});
+    L.push("","Format: A4, 4 halaman PDF sehelai (2 kiri-kanan, depan & belakang), setiap kertas berasingan");
+    L.push("Cetakan: "+o.helai+" helai × RM0.20 = "+rm(o.cetak));
     L.push("Pos: "+(o.pos?rm(o.pos)+" (percuma untuk cetakan RM150 ke atas)":"PERCUMA"));
     L.push("JUMLAH: "+rm(o.jumlah),"","Nama:","Alamat:","No. telefon:");
     var s=L.join("\n");
     if(s.length>1800&&o.no){   // very long lists: one line per paper, full list is saved under the order number
       L=["Salam, saya nak cetak kertas SPMTrial.","No. pesanan: #"+o.no,""];
-      o.items.forEach(function(it,i){var m=0;it.files.forEach(function(f){m+=f.m});L.push((i+1)+". "+it.name+" ("+m+" muka)")});
-      L.push("","Cetakan: "+o.muka+" muka = "+rm(o.cetak)+" · Pos: "+(o.pos?rm(o.pos):"PERCUMA")+" · JUMLAH: "+rm(o.jumlah),"","Nama:","Alamat:","No. telefon:");s=L.join("\n");
+      o.items.forEach(function(it,i){var m=0;it.files.forEach(function(f){m+=f.h});L.push((i+1)+". "+it.name+" ("+m+" helai)")});
+      L.push("","Cetakan: "+o.helai+" helai = "+rm(o.cetak)+" · Pos: "+(o.pos?rm(o.pos):"PERCUMA")+" · JUMLAH: "+rm(o.jumlah),"","Nama:","Alamat:","No. telefon:");s=L.join("\n");
     }
     return s;
   }
   function local(){var items=[],m=0,h=0;cart.forEach(function(c){var r=D[c.id];if(!r)return;
-      var fs=r[2].filter(function(f){return c.f.indexOf(f[2])>-1}).map(function(f){m+=muka(f[1]);h+=helai(f[1]);return{t:f[0],p:f[1],m:muka(f[1]),d:f[2]}});
+      var fs=r[2].filter(function(f){return c.f.indexOf(f[2])>-1}).map(function(f){m+=muka(f[1]);h+=helai(f[1]);return{t:f[0],p:f[1],m:muka(f[1]),h:helai(f[1]),d:f[2]}});
       if(fs.length)items.push({id:c.id,name:r[0],files:fs})});
-    var ct=m*10,pos=ct>=15000?0:600;return{items:items,muka:m,helai:h,cetak:ct,pos:pos,jumlah:ct+pos}}
+    var ct=h*20,pos=ct>=15000?0:600;return{items:items,muka:m,helai:h,cetak:ct,pos:pos,jumlah:ct+pos}}
   function order(btn,msg){
     btn.disabled=true;msg.className="";msg.textContent="Menyediakan pesanan…";
     fetch(B+"/api/cetak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({items:cart})})

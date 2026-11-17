@@ -141,7 +141,7 @@ export default {
         out.push({ id: String(it.id), name: r[0], files });
       }
       if (!out.length) return json({ error: "Senarai cetakan kosong" }, 400);
-      const cetak = muka * 10, pos = cetak >= 15000 ? 0 : 600;   // sen
+      const cetak = helai * 20, pos = cetak >= 15000 ? 0 : 600;   // sen
       const d = new Date(Date.now() + 8 * 3600e3).toISOString();  // Malaysia time
       const no = "C" + d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10) + "-" + String(Math.floor(1000 + Math.random() * 9000));
       const order = { no, at: new Date().toISOString(), status: "baru", items: out, muka, helai, cetak, pos, jumlah: cetak + pos };
