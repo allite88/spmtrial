@@ -117,6 +117,39 @@ export default {
       });
     }
 
+    // ---- print service: price is recomputed here from the site's /cetak.json (page counts), never trusted from the browser
+    if (path === "/api/cetak" && req.method === "POST") {
+      let b;
+      try { b = await req.json(); } catch (e) { return json({ error: "Data tidak sah" }, 400); }
+      const ip = req.headers.get("cf-connecting-ip") || "x";
+      const rk = "rlc:" + ip + ":" + new Date().toISOString().slice(0, 13);
+      const n = parseInt((await env.QUIZ.get(rk)) || "0", 10);
+      if (n >= 15) return json({ error: "Terlalu banyak pesanan — cuba lagi dalam sejam" }, 429);
+      const items = Array.isArray(b.items) ? b.items.slice(0, 80) : [];
+      const res = await fetch("https://spmtrial.com/cetak.json", { cf: { cacheTtl: 300 }, headers: { "user-agent": "Mozilla/5.0 (compatible; spmtrial-worker)" } });
+      if (!res.ok) return json({ error: "Data cetakan tidak tersedia" }, 503);
+      const CT = await res.json();
+      const out = [];
+      let muka = 0, helai = 0;
+      for (const it of items) {
+        const r = CT[String(it && it.id)];
+        if (!r) continue;
+        const want = new Set(Array.isArray(it.f) ? it.f.map(String) : []);
+        const files = r[2].filter((f) => want.has(f[2])).map((f) => ({ t: f[0], p: f[1], m: Math.ceil(f[1] / 2), h: Math.ceil(f[1] / 4), d: f[2] }));
+        if (!files.length) continue;
+        files.forEach((f) => { muka += f.m; helai += f.h; });
+        out.push({ id: String(it.id), name: r[0], files });
+      }
+      if (!out.length) return json({ error: "Senarai cetakan kosong" }, 400);
+      const cetak = muka * 10, pos = cetak >= 15000 ? 0 : 600;   // sen
+      const d = new Date(Date.now() + 8 * 3600e3).toISOString();  // Malaysia time
+      const no = "C" + d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10) + "-" + String(Math.floor(1000 + Math.random() * 9000));
+      const order = { no, at: new Date().toISOString(), status: "baru", items: out, muka, helai, cetak, pos, jumlah: cetak + pos };
+      await env.QUIZ.put("order:" + no, JSON.stringify(order), { expirationTtl: 60 * 60 * 24 * 400 });
+      await env.QUIZ.put(rk, String(n + 1), { expirationTtl: 3700 });
+      return json(order);
+    }
+
     if (path === "/api/kongsi" && req.method === "POST") {
       let b;
       try { b = await req.json(); } catch (e) { return json({ error: "Data tidak sah" }, 400); }

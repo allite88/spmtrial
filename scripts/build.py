@@ -385,7 +385,7 @@ def page(path, title, desc, body, crumbs=None, lds=(), keywords=""):
   <div class="wrap">
     <p><strong>{E(SITE_NAME)}</strong> — direktori pautan bahan SPM (soalan percubaan, soalan sebenar, nota, buku teks) yang dikongsi secara awam. Semua fail dihoskan oleh pemilik asal (kebanyakannya Google Drive); kami hanya menyusun pautan supaya lebih mudah dicari.</p>
     <p class="muted">Hak cipta bahan milik penulis / sekolah / jabatan pendidikan berkenaan. Dikemas kini {TODAY}.</p>
-    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/kongsi/">Kongsi Kertas</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
+    <p class="muted"><a href="/">Utama</a> · <a href="/cari/">Cari</a> · <a href="/panduan-trial-spm/">Panduan Trial SPM</a> · <a href="/kongsi/">Kongsi Kertas</a> · <a href="/cetak/">🖨 Servis Cetak</a> · <a href="/soalan-sebenar-spm/">Soalan Sebenar SPM</a> · <a href="/tentang/">Tentang Kami</a> · <a href="/hubungi/">Hubungi</a> · <a href="/privasi/">Dasar Privasi</a> · <a href="/sitemap.xml">Sitemap</a></p>
   </div>
 </footer>
 <script>{JS}</script>
@@ -1068,6 +1068,39 @@ _av = hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 _ah = _ah.replace('src="admin.js"', 'src="admin.js?v=%s"' % _av).replace('src="admin-site.js"', 'src="admin-site.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-own.js"', 'src="admin-own.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), "rb").read()).hexdigest()[:8]).replace('src="admin-kiriman.js"', 'src="admin-kiriman.js?v=%s"' % hashlib.sha1(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-kiriman.js"), "rb").read()).hexdigest()[:8])
 _ah = _ah.replace("__SITE_NAME__", E(SITE_NAME)).replace("__CFG__", json.dumps({"repo": CFG.get("github_repo", "")}))
 open(os.path.join(OUT, "admin", "index.html"), "w", encoding="utf-8").write(_ah)
+# ---- print service: page counts (data/pagecount.json, made by scripts/pagecount.py) → /cetak.json  {rowId: [name, subject, [[label, pages, driveId], ...]]}
+try:
+    PC = json.load(open(os.path.join(ROOT, "data", "pagecount.json"), encoding="utf-8"))
+except Exception:
+    PC = {}
+_did = re.compile(r"drive\.google\.com/(?:file/d/|open\?id=|uc\?(?:.*&)?id=)([\w-]{20,})")
+CETAK = {}
+for a in adm_rows:
+    if a["t"] != "percubaan": continue
+    files = []
+    for t_, u_, k_ in a["k"]:
+        m_ = _did.search(u_) if k_ in ("paper", "ans") else None
+        p_ = PC.get(m_.group(1), {}).get("p") if m_ else None
+        if p_: files.append([t_, p_, m_.group(1)])
+    if files:
+        nm = a["l"].split("›")[-1].strip()
+        if a["sn"].lower() not in nm.lower(): nm = a["sn"] + " " + nm
+        CETAK[a["id"]] = [nm, a["sn"], files]
+json.dump(CETAK, open(os.path.join(OUT, "cetak.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+cetak_body = f"""<h1>🖨 Cetak Kertas Percubaan SPM</h1>
+<p class="lead">Pilih kertas di halaman subjek (butang <b>🖨 Cetak</b> di sebelah setiap kertas), semak senarai di sini, kemudian pesan melalui WhatsApp. Kami cetak dan pos ke rumah anda.</p>
+<div class="ct-info"><b>🖨 Cara kiraan harga</b>
+<ul><li>Setiap muka kertas A4 memuatkan <b>2 halaman PDF</b> (kiri &amp; kanan), dicetak <b>depan &amp; belakang</b> — jadi <b>1 helai = 4 halaman PDF</b>.</li>
+<li>Harga: <b>RM0.10 semuka</b>. Muka belakang yang kosong tidak dikira.</li>
+<li>Setiap kertas (K1, K2, Jawapan) dicetak <b>berasingan</b>.</li>
+<li>Pos <b>RM6.00</b> · <b>Percuma</b> untuk cetakan RM150 ke atas.</li></ul>
+<p class="muted">Bayaran ini ialah caj perkhidmatan cetakan dan penghantaran sahaja. Semua kertas boleh dimuat turun secara percuma di laman ini.</p></div>
+<div id="ct-app"><p class="muted">Memuatkan senarai…</p></div>
+<noscript><p>Sila hidupkan JavaScript untuk menggunakan senarai cetakan.</p></noscript>"""
+page("/cetak/", f"Cetak Kertas Percubaan SPM — Servis Cetakan & Pos | {SITE_NAME}",
+     "Servis cetakan kertas soalan percubaan SPM dan skema jawapan: RM0.10 semuka (2 halaman PDF semuka, depan & belakang), pos ke seluruh Malaysia. Pesan melalui WhatsApp.",
+     cetak_body, crumbs=[("Utama", "/"), ("Cetak", "/cetak/")])
+
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin.js"), os.path.join(OUT, "admin", "admin.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-site.js"), os.path.join(OUT, "admin", "admin-site.js"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin-own.js"), os.path.join(OUT, "admin", "admin-own.js"))
