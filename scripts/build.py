@@ -1142,6 +1142,8 @@ open(os.path.join(OUT, "sitemap.xml"), "w").write("\n".join(sm))
 if AD_CLIENT:
     open(os.path.join(OUT, "ads.txt"), "w").write("google.com, %s, DIRECT, f08c47fec0942fa0\n" % AD_CLIENT.replace("ca-pub-", "pub-"))
 shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)), "og.png"), os.path.join(OUT, "og.png"))
+_shp = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shopee", "img")
+if os.path.isdir(_shp): shutil.copytree(_shp, os.path.join(OUT, "shopee", "img"), dirs_exist_ok=True)   # Shopee listing images
 if CFG.get("indexnow_key"):
     open(os.path.join(OUT, CFG["indexnow_key"] + ".txt"), "w").write(CFG["indexnow_key"])
 open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nDisallow: /cari/index.json\nDisallow: /admin/\n\nSitemap: {SITE_URL}/sitemap.xml\n")
