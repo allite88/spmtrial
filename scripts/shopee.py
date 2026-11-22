@@ -2,7 +2,8 @@
 """Shopee mass-upload listings for the printed trial papers.
     python3 scripts/shopee.py                       # images + shopee/shopee-listings.xlsx
     python3 scripts/shopee.py --template FILE.xlsx  # also fill Shopee's own mass-upload template -> shopee/shopee-upload.xlsx
-One product per subject + year; one variation option per paper set (state / school), price = A4 sheets x RM0.20.
+One product per subject + year; options are sets of papers (states / schools) bundled to at most RM15,
+price = A4 sheets x RM0.40 (RM0.20 a printed side). The website keeps its own pricing.
 Reads site/cetak.json + site/admin/rows.json (run build.py first). Images go to shopee/img/ and are served at
 https://spmtrial.com/shopee/img/ (build.py copies them)."""
 import json, os, re, sys, math, collections
@@ -14,7 +15,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "shopee")
 IMG = os.path.join(OUT, "img")
 IMG_URL = "https://spmtrial.com/shopee/img/"
-SEN = 20            # sen per A4 sheet
+SEN = 40            # sen per A4 sheet on Shopee (RM0.20 a side, both sides)
+CAP = 1500          # each Shopee set stays at or under RM15
 DTS = 10            # pre-order days
 STOCK = 999
 MAX_OPT = 50        # Shopee MY: options per variation tier
@@ -103,7 +105,7 @@ def cover(path, subj, year, n, i):
     d.text((790, 638), "BERCETAK A4", font=font(FONT_B, 38), fill="white", anchor="mm")
     d.text((790, 685), "+ Jawapan", font=font(FONT_B, 34), fill="white", anchor="mm")
     d.rectangle([0, 880, 1000, 1000], fill=dark)
-    d.text((500, 940), "%d set pilihan negeri / sekolah  •  RM0.20 sehelai" % n, font=font(FONT_B, 40), fill="white", anchor="mm")
+    d.text((500, 940), "%d set  •  RM0.20 semuka  •  RM0.40 sehelai" % n, font=font(FONT_B, 40), fill="white", anchor="mm")
     im.resize((800, 800), Image.LANCZOS).save(path, "JPEG", quality=82, optimize=True)
 
 def info_image(path):
@@ -120,7 +122,7 @@ def info_image(path):
             d.rectangle([cx - 70, 275, cx + 70, 505], fill="#f3f4f6", outline="#d1d5db", width=2)
             d.text((cx, 390), str(base + j), font=font(FONT_B, 80), fill="#1d4ed8", anchor="mm")
     lines = ["1 helai A4 = 4 halaman PDF", "(2 kiri-kanan, depan & belakang)", "",
-             "RM0.20 sehelai A4", "Setiap kertas dicetak berasingan", "Contoh: 31 halaman = 8 helai = RM1.60"]
+             "RM0.20 semuka  •  RM0.40 sehelai A4", "Setiap kertas dicetak berasingan", "Contoh: 31 halaman = 8 helai = RM3.20"]
     y = 600
     for ln in lines:
         if ln: d.text((500, y), ln, font=font(FONT_B if not ln.startswith("(") else FONT_R, 44), fill="#111827", anchor="mm")
@@ -141,48 +143,81 @@ def build():
     keys = sorted(groups, key=lambda k: (-k[1], -len(groups[k]), k[0]))
     for pi, (sn, y) in enumerate(keys):
         sets = sorted(groups[(sn, y)], key=lambda t: t[1])
-        chunks = [sets[i:i + MAX_OPT] for i in range(0, len(sets), MAX_OPT)]
-        for ci, chunk in enumerate(chunks):
-            opts, used = [], collections.Counter()
-            names = short_names([t[1] for t in chunk], sn, y)
-            for (rid, name, files), o in zip(chunk, names):
-                used[o] += 1
-                if used[o] > 1:
-                    suf = " (%d)" % used[o]; o = o[:20 - len(suf)].rstrip() + suf
-                h = sum(helai(f[1]) for f in files)
-                opts.append({"rid": rid, "opt": o, "files": files, "helai": h, "price": h * SEN,
-                             "weight": round(0.05 + h * 0.005, 2), "height": max(1, math.ceil(h / 100))})
-            short = SHORT.get(sn, sn)
-            en = EN.get(sn)
-            suf = " (Bahagian %d)" % (ci + 1) if len(chunks) > 1 else ""
-            title = "Kertas Percubaan SPM %d %s%s Bercetak A4 + Jawapan | %d Set Negeri%s" % (
-                y, short, (" " + en) if en and en.lower() not in short.lower() else "", len(opts), suf)
-            if len(title) > 120: title = title[:120].rstrip()
-            img = "%d-%s.jpg" % (y, slug(sn)) if ci == 0 else "%d-%s-%d.jpg" % (y, slug(sn), ci + 1)
-            cover(os.path.join(IMG, img), sn, y, len(opts), pi)
-            products.append({"n": len(products) + 1, "sn": sn, "y": y, "title": title,
-                             "sku": ("%s-%d" % (slug(short), y)).upper()[:30] + ("-%d" % (ci + 1) if ci else ""),
-                             "opts": opts, "img": IMG_URL + img, "desc": desc(sn, y, opts)})
+        names = short_names([t[1] for t in sets], sn, y)
+        items, used = [], collections.Counter()
+        for (rid, name, files), o in zip(sets, names):
+            used[o] += 1
+            if used[o] > 1: o = "%s (%d)" % (o, used[o])
+            h = sum(helai(f[1]) for f in files)
+            if h * SEN > CAP and len(files) > 1:      # too big for one set: its papers go separately
+                for f in files:
+                    nm = f[0] if len(f[0]) > 14 else "%s %s" % (o, f[0])
+                    items.append({"name": nm if not nm.startswith("T4 ") and not nm.startswith("T5 ") else "Tingkatan " + nm[1:], "files": [f], "helai": helai(f[1])})
+            else:
+                items.append({"name": o, "files": files, "helai": h})
+        bundles = pack(items)
+        opts = []
+        for bi, b in enumerate(bundles):
+            h = sum(it["helai"] for it in b)
+            heads = []
+            for it in b:
+                w = head_of(it["name"])
+                if w not in heads: heads.append(w)
+            o = "Set %d: %s" % (bi + 1, "/".join(heads))
+            if len(o) > 20: o = "Set %d (%d kertas)" % (bi + 1, len(b))
+            opts.append({"rid": "S%d" % (bi + 1), "opt": o, "items": b, "helai": h, "price": h * SEN,
+                         "weight": round(0.05 + h * 0.005, 2), "height": max(1, math.ceil(h / 100))})
+        short = SHORT.get(sn, sn)
+        en = EN.get(sn)
+        title = "Kertas Percubaan SPM %d %s%s Bercetak A4 + Jawapan | %d Negeri/Sekolah, %d Set" % (
+            y, short, (" " + en) if en and en.lower() not in short.lower() else "", len(sets), len(opts))
+        if len(title) > 120: title = title[:120].rstrip()
+        img = "%d-%s.jpg" % (y, slug(sn))
+        cover(os.path.join(IMG, img), sn, y, len(opts), pi)
+        products.append({"n": len(products) + 1, "sn": sn, "y": y, "title": title,
+                         "sku": ("%s-%d" % (slug(short), y)).upper()[:30], "nsets": len(sets),
+                         "opts": opts, "img": IMG_URL + img, "desc": desc(sn, y, opts, len(sets))})
     return products
 
-def desc(sn, y, opts):
+def pack(items):
+    """Fill sets up to CAP in name order (a state's papers stay together); a small last set joins the one before if it fits."""
+    out, cur, tot = [], [], 0
+    for it in items:
+        p = it["helai"] * SEN
+        kind = lambda x: x["name"].startswith("Tingkatan")      # chapter exercises are not mixed with state papers
+        if cur and (tot + p > CAP or kind(it) != kind(cur[-1])): out.append(cur); cur, tot = [], 0
+        cur.append(it); tot += p
+    out.append(cur)
+    return out
+
+STATES = [("Negeri Sembilan", "NSembilan"), ("Kuala Lumpur", "KL"), ("Pulau Pinang", "PPinang"), ("WPKL", "KL"),
+          ("Terengganu", "T'ganu"), ("Putrajaya", "Putrajaya")]
+
+def head_of(name):
+    n = name.strip("() ")
+    for full, ab in STATES:
+        if n.startswith(full): return ab
+    return n.split()[0] if n else "Set"
+
+def desc(sn, y, opts, nsets):
     en = EN.get(sn)
     head = ("Kertas Percubaan SPM %d %s%s – versi BERCETAK (hardcopy), sedia untuk ulang kaji.\n"
-            "Pilih set mengikut negeri / sekolah. Setiap set mengandungi kertas soalan dan jawapan / skema (jika ada).\n\n"
+            "%d set kertas percubaan negeri / sekolah, dibahagikan kepada %d set pilihan (setiap set RM15 dan ke bawah). "
+            "Setiap kertas lengkap dengan jawapan / skema (jika ada).\n\n"
             "📄 FORMAT CETAKAN\n"
             "• Kertas A4, 2 halaman PDF sebelah kiri-kanan, depan & belakang (1 helai A4 = 4 halaman PDF)\n"
             "• Setiap kertas (K1, K2, Jawapan) dicetak berasingan\n"
-            "• Harga ikut bilangan helai: RM0.20 sehelai A4 (helai terakhir yang separuh kosong turut dikira)\n\n"
-            "📦 PILIHAN SET (%d)\n") % (y, sn, " (%s)" % en if en else "", len(opts))
+            "• RM0.20 semuka, RM0.40 sehelai A4 (depan & belakang; helai terakhir yang separuh kosong turut dikira)\n\n"
+            "📦 PILIHAN SET (%d)\n") % (y, sn, " (%s)" % en if en else "", nsets, len(opts), len(opts))
     tail = ("\n⏱ PENGHANTARAN\nPre-order: siap dicetak & dipos dalam %d hari bekerja.\n\n"
             "ℹ️ NOTA\nHarga adalah untuk servis cetakan sahaja. Hak cipta soalan milik penyedia asal masing-masing "
             "(JPN, sekolah, MRSM, SBP dan lain-lain).\n\n"
             "#KertasPercubaanSPM #SPM%d #TrialSPM #SoalanPercubaanSPM #%s") % (DTS, y, re.sub(r"\W", "", en or sn))
-    full = "".join("• %s – %s · %d helai · RM%s\n" % (o["opt"], ", ".join(f[0] for f in o["files"]), o["helai"], rm(o["price"])) for o in opts)
+    full = "".join("%s · %d helai · RM%s\n%s\n" % (o["opt"].split(":")[0].split(" (")[0], o["helai"], rm(o["price"]),
+                   "".join("  • %s\n" % it["name"] for it in o["items"])) for o in opts)
     if len(head + full + tail) > DESC_MAX:
-        full = "".join("• %s · %d helai · RM%s\n" % (o["opt"], o["helai"], rm(o["price"])) for o in opts)
-    if len(head + full + tail) > DESC_MAX:
-        full = ", ".join(o["opt"] for o in opts) + "\n"
+        full = "".join("%s · RM%s: %s\n" % (o["opt"].split(":")[0].split(" (")[0], rm(o["price"]),
+                       ", ".join(it["name"] for it in o["items"])) for o in opts)
     return head + full + tail
 
 COLS = ["Category", "Product Name", "Product Description", "Parent SKU", "Variation Integration No.", "Variation Name1",
