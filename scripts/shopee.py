@@ -50,6 +50,27 @@ def opt_name(label, subj, year):
         if len(s) > 20: s = s.replace(a, b)
     return s[:20].strip()
 
+def short_names(labels, subj, year):
+    """Option names (<=20 chars): drop the year, the subject and any words every label in the group starts with."""
+    norm = lambda t: t.replace("’", "'").lower()
+    out = []
+    for l in labels:
+        w = [x for x in l.replace("’", "'").split() if x != str(year)]
+        t = " ".join(w)
+        if norm(t).startswith(norm(subj)): t = t[len(subj):].strip()
+        out.append(t.split())
+    if len(out) > 1:
+        k = 0
+        while all(len(x) > k + 1 for x in out) and len({norm(x[k]) for x in out}) == 1: k += 1
+        out = [x[k:] for x in out]
+    res = []
+    for x in out:
+        s = re.sub(r"\((\d)\)", r"\1", " ".join(x)).strip(" -–") or "Set"
+        for a, b in ABBR:
+            if len(s) > 20: s = s.replace(a, b)
+        res.append(s[:20].strip())
+    return res
+
 def font(path, size): return ImageFont.truetype(path, size)
 
 def wrap(d, text, f, width):
@@ -113,7 +134,7 @@ def build():
     for rid, (name, sn, files) in cetak.items():
         r = rows.get(rid)
         if not r or not str(r["y"]).isdigit(): continue
-        groups[(sn, int(r["y"]))].append((rid, name, files))
+        groups[(sn, int(r["y"]))].append((rid, r["l"].split("›")[-1].strip() or name, files))
     os.makedirs(IMG, exist_ok=True)
     info_image(os.path.join(IMG, "format-cetakan.jpg"))
     products = []
@@ -123,10 +144,11 @@ def build():
         chunks = [sets[i:i + MAX_OPT] for i in range(0, len(sets), MAX_OPT)]
         for ci, chunk in enumerate(chunks):
             opts, used = [], collections.Counter()
-            for rid, name, files in chunk:
-                o = opt_name(name, sn, y)
+            names = short_names([t[1] for t in chunk], sn, y)
+            for (rid, name, files), o in zip(chunk, names):
                 used[o] += 1
-                if used[o] > 1: o = o[:16] + " (%d)" % used[o]
+                if used[o] > 1:
+                    suf = " (%d)" % used[o]; o = o[:20 - len(suf)].rstrip() + suf
                 h = sum(helai(f[1]) for f in files)
                 opts.append({"rid": rid, "opt": o, "files": files, "helai": h, "price": h * SEN,
                              "weight": round(0.05 + h * 0.005, 2), "height": max(1, math.ceil(h / 100))})
@@ -193,29 +215,52 @@ def write_own(products):
         s.append([p["n"], p["title"], len(p["opts"]), min(pr) / 100, max(pr) / 100, len(p["desc"]), p["img"]])
     f = os.path.join(OUT, "shopee-listings.xlsx"); wb.save(f); return f
 
+CATEGORY = 101568   # Books & Magazines/Books/Education & School
+KEYS = {"ps_category": "cat", "ps_product_name": "Product Name", "ps_product_description": "Product Description",
+        "ps_sku_parent_short": "Parent SKU", "et_title_variation_integration_no": "Variation Integration No.",
+        "et_title_variation_1": "Variation Name1", "et_title_option_for_variation_1": "Option for Variation 1",
+        "ps_price": "Price", "ps_stock": "Stock", "ps_sku_short": "SKU", "ps_item_cover_image": "Cover image",
+        "ps_item_image_1": "Item Image 1", "ps_weight": "Weight", "ps_length": "Length", "ps_width": "Width",
+        "ps_height": "Height", "ps_product_pre_order_dts": "Pre-order DTS"}
+ROWS_PER_FILE = 1000
+
 def fill_template(products, tpl):
-    """Fill Shopee's downloaded mass-upload template: find the row with the column titles, match by title."""
-    wb = openpyxl.load_workbook(tpl); ws = wb.worksheets[0]
-    hdr_row, cmap = None, {}
-    for r in range(1, 10):
-        vals = {str(ws.cell(r, c).value or "").strip().lower(): c for c in range(1, ws.max_column + 1)}
-        if any(v.startswith("product name") for v in vals):
-            hdr_row = r
-            for v, c in vals.items():
-                for k in COLS:
-                    if v.startswith(k.lower()) and k not in cmap: cmap[k] = c
-            break
-    if not hdr_row: sys.exit("Could not find the 'Product Name' header row in " + tpl)
-    start = ws.max_row + 1
-    r = start
+    """Fill Shopee's downloaded basic template (machine keys in row 1, data from row 7); <=1000 rows per file."""
+    import zipfile, shutil, tempfile
+    tmp = tempfile.mkdtemp()
+    fixed = os.path.join(tmp, "t.xlsx")
+    with zipfile.ZipFile(tpl) as zi, zipfile.ZipFile(fixed, "w", zipfile.ZIP_DEFLATED) as zo:
+        for it in zi.infolist():   # Shopee writes activePane="bottom_left", which openpyxl rejects
+            b = zi.read(it.filename)
+            if it.filename.startswith("xl/worksheets/"): b = b.replace(b'activePane="bottom_left"', b'activePane="bottomLeft"')
+            zo.writestr(it, b)
+    batches, cur = [], []
     for p in products:
-        for ln in lines_for(p):
-            for k, v in ln.items():
-                if k in cmap and v != "": ws.cell(r, cmap[k], v)
-            r += 1
-    f = os.path.join(OUT, "shopee-upload.xlsx"); wb.save(f)
-    print("template header row %d, data rows %d-%d, matched: %s" % (hdr_row, start, r - 1, ", ".join(cmap)))
-    return f
+        n = len(p["opts"])
+        if cur and sum(len(q["opts"]) for q in cur) + n > ROWS_PER_FILE: batches.append(cur); cur = []
+        cur.append(p)
+    if cur: batches.append(cur)
+    outs = []
+    for bi, batch in enumerate(batches):
+        wb = openpyxl.load_workbook(fixed); ws = wb["Template"]
+        col = {}
+        for c in range(1, ws.max_column + 1):
+            k = str(ws.cell(1, c).value or "").split("|")[0]
+            if k in KEYS: col[KEYS[k]] = c
+            elif k.startswith("channel_id."): col.setdefault("channels", []).append(c)
+        r = 7
+        for p in batch:
+            for ln in lines_for(p):
+                ln["cat"] = CATEGORY
+                ln["Product Description"] = p["desc"]
+                for k, v in ln.items():
+                    if k in col and v != "": ws.cell(r, col[k], v)
+                for c in col.get("channels", []): ws.cell(r, c, "On")
+                r += 1
+        f = os.path.join(OUT, "shopee-upload-%d.xlsx" % (bi + 1)); wb.save(f); outs.append(f)
+        print("%s: %d products, %d rows (%d-%d)" % (os.path.basename(f), len(batch), r - 7, 7, r - 1))
+    shutil.rmtree(tmp)
+    return outs
 
 if __name__ == "__main__":
     ps = build()
